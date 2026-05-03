@@ -49,6 +49,7 @@ export default function Layout() {
   const setSelectedBranchId = useBranchScopeStore((s) => s.setSelectedBranchId);
   const [branchRows, setBranchRows] = useState([]);
   const [pastoralOpenCount, setPastoralOpenCount] = useState(null);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const isSuper = user?.role === 'super_admin';
   const settingsTo = ['super_admin', 'branch_admin'].includes(user?.role) ? '/access' : '/dashboard';
 
