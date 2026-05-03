@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Give Online — Christ Apostolic Church (All Saints) DCC</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700;900&family=Crimson+Pro:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+<style>
+:root {
+  --gold: #C9973A;
+  --gold-light: #E8C46A;
+  --gold-dim: #8A6320;
+  --purple: #3D1A5C;
+  --cream: #FAF7F0;
+  --dark: #0F0816;
+  --text: #1A0F28;
+  --white: #FFFFFF;
+}
+*,*::before,*::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; scroll-padding-top: 88px; }
+body {
+  font-family: 'Crimson Pro', Georgia, serif;
+  background: var(--cream);
+  color: var(--text);
+  min-height: 100vh;
+}
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: rgba(15, 8, 22, 0.94);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid rgba(201, 151, 58, 0.25);
+  padding: 0 clamp(16px, 4vw, 40px);
+  height: 72px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.topbar a {
+  font-family: 'Cinzel', serif;
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: rgba(250, 247, 240, 0.75);
+  text-decoration: none;
+  padding: 8px 14px;
+  border-radius: 4px;
+}
+.topbar a:hover { color: var(--gold-light); background: rgba(201, 151, 58, 0.1); }
+.topbar-title {
+  font-family: 'Cinzel', serif;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  color: var(--gold-light);
+  text-transform: uppercase;
+}
+.wrap {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: clamp(24px, 5vw, 48px) clamp(16px, 4vw, 40px) 64px;
+}
+.hero {
+  text-align: center;
+  margin-bottom: clamp(32px, 6vw, 48px);
+}
+.hero h1 {
+  font-family: 'Cinzel', serif;
+  font-size: clamp(28px, 4vw, 42px);
+  font-weight: 900;
+  color: var(--dark);
+  margin-bottom: 12px;
+}
+.hero h1 span {
+  background: linear-gradient(135deg, var(--gold-light), var(--gold), var(--gold-dim));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.hero p {
+  font-size: 18px;
+  color: #5c5568;
+  max-width: 36rem;
+  margin: 0 auto;
+  line-height: 1.55;
+}
+.grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: clamp(24px, 4vw, 36px);
+  align-items: start;
+}
+@media (max-width: 860px) {
+  .grid { grid-template-columns: 1fr; }
+}
+.card {
+  background: var(--white);
+  border-radius: 12px;
+  border: 1px solid rgba(61, 26, 92, 0.12);
+  box-shadow: 0 18px 50px -24px rgba(15, 8, 22, 0.35);
+  padding: clamp(22px, 4vw, 32px);
+}
+.card h2 {
+  font-family: 'Cinzel', serif;
+  font-size: 14px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--purple);
+  margin-bottom: 20px;
+  padding-bottom: 12px;
+  border-bottom: 2px solid rgba(201, 151, 58, 0.35);
+}
+label {
+  display: block;
+  font-family: 'Cinzel', serif;
+  font-size: 10px;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+  color: #6b6280;
+  margin-bottom: 6px;
+  margin-top: 14px;
+}
+label:first-of-type { margin-top: 0; }
+input, select, textarea {
+  width: 100%;
+  font-family: 'Crimson Pro', Georgia, serif;
+  font-size: 17px;
+  padding: 12px 14px;
+  border: 1px solid rgba(61, 26, 92, 0.2);
+  border-radius: 8px;
+  background: #fdfcfa;
+  color: var(--text);
+}
+input:focus, select:focus, textarea:focus {
+  outline: none;
+  border-color: var(--gold);
+  box-shadow: 0 0 0 3px rgba(201, 151, 58, 0.2);
+}
+textarea { min-height: 88px; resize: vertical; }
+.row2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+@media (max-width: 520px) {
+  .row2 { grid-template-columns: 1fr; }
+}
+.btn-row {
+  margin-top: 24px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.btn-primary {
+  font-family: 'Cinzel', serif;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  padding: 14px 28px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  background: linear-gradient(135deg, var(--gold), var(--gold-dim));
+  color: var(--dark);
+  box-shadow: 0 8px 24px rgba(201, 151, 58, 0.35);
+}
+.btn-primary:hover { filter: brightness(1.06); transform: translateY(-1px); }
+.btn-outline {
+  font-family: 'Cinzel', serif;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  padding: 13px 22px;
+  border-radius: 6px;
+  cursor: pointer;
+  background: transparent;
+  border: 1.5px solid rgba(61, 26, 92, 0.35);
+  color: var(--purple);
+}
+.bank-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+  padding: 14px 0;
+  border-bottom: 1px solid rgba(61, 26, 92, 0.08);
+}
+.bank-row:last-of-type { border-bottom: none; }
+.bank-label {
+  font-family: 'Cinzel', serif;
+  font-size: 10px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: #8a8499;
+}
+.bank-value {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text);
+  text-align: right;
+  word-break: break-word;
+}
+.mono { font-variant-numeric: tabular-nums; letter-spacing: 0.04em; }
+.btn-copy {
+  font-family: 'Cinzel', serif;
+  font-size: 9px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  padding: 6px 12px;
+  border-radius: 4px;
+  border: 1px solid rgba(201, 151, 58, 0.5);
+  background: rgba(201, 151, 58, 0.12);
+  color: var(--gold-dim);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.btn-copy:hover { background: rgba(201, 151, 58, 0.22); }
+.note {
+  margin-top: 20px;
+  padding: 14px 16px;
+  background: rgba(61, 26, 92, 0.06);
+  border-radius: 8px;
+  font-size: 15px;
+  line-height: 1.55;
+  color: #4a4458;
+}
+.ref-box {
+  margin-top: 16px;
+  padding: 16px;
+  border-radius: 8px;
+  border: 2px dashed rgba(201, 151, 58, 0.55);
+  background: rgba(255, 255, 255, 0.9);
+}
+.ref-box strong {
+  font-family: 'Cinzel', serif;
+  font-size: 11px;
+  letter-spacing: 2px;
+  color: var(--purple);
+}
+.ref-code {
+  font-family: ui-monospace, monospace;
+  font-size: 18px;
+  margin-top: 8px;
+  color: var(--dark);
+}
+.hidden { display: none !important; }
+.confirm-banner {
+  padding: 14px 18px;
+  border-radius: 8px;
+  background: rgba(34, 139, 34, 0.12);
+  border: 1px solid rgba(34, 139, 34, 0.35);
+  color: #1e5c1e;
+  margin-bottom: 20px;
+  font-size: 16px;
+}
+.fine-print {
+  margin-top: 16px;
+  font-size: 13px;
+  color: #7a7388;
+  line-height: 1.5;
+}
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <span class="topbar-title">Giving</span>
+  <nav>
+    <a href="cac-landing.html">← Home</a>
+    <a href="/login" target="_parent">Sign in</a>
+  </nav>
+</header>
+
+<div class="wrap">
+  <section class="hero">
+    <h1>Give <span>Online</span></h1>
+    <p>
+      Honour the Lord with your tithes, offerings, and project seeds. Complete the short form below,
+      then transfer using our church bank details. Use your narration reference so we can acknowledge your gift.
+    </p>
+  </section>
+
+  <div class="grid">
+    <section class="card" id="form-card">
+      <h2>Donation details</h2>
+      <div id="confirm-msg" class="confirm-banner hidden" role="status"></div>
+      <form id="give-form" novalidate>
+        <div class="row2">
+          <div>
+            <label for="g-name">Full name</label>
+            <input id="g-name" name="name" type="text" autocomplete="name" required placeholder="As it appears on your transfer">
+          </div>
+          <div>
+            <label for="g-phone">Phone</label>
+            <input id="g-phone" name="phone" type="tel" autocomplete="tel" placeholder="+234 …">
+          </div>
+        </div>
+        <label for="g-email">Email (optional)</label>
+        <input id="g-email" name="email" type="email" autocomplete="email" placeholder="For receipts / follow-up">
+
+        <div class="row2">
+          <div>
+            <label for="g-amount">Amount (NGN)</label>
+            <input id="g-amount" name="amount" type="number" inputmode="decimal" min="100" step="100" required placeholder="e.g. 10000">
+          </div>
+          <div>
+            <label for="g-type">Giving type</label>
+            <select id="g-type" name="type" required>
+              <option value="">Select…</option>
+              <option value="tithe">Tithe</option>
+              <option value="offering">Offering</option>
+              <option value="thanksgiving">Thanksgiving</option>
+              <option value="building">Building / Project</option>
+              <option value="missions">Missions</option>
+              <option value="other">Other</option>
+            </select>
+          </div>
+        </div>
+
+        <label for="g-note">Note to treasurer (optional)</label>
+        <textarea id="g-note" name="note" placeholder="Branch name, envelope number, etc."></textarea>
+
+        <div class="btn-row">
+          <button type="submit" class="btn-primary">Generate reference &amp; instructions</button>
+          <button type="reset" class="btn-outline" id="btn-reset">Clear form</button>
+        </div>
+      </form>
+
+      <div id="reference-panel" class="ref-box hidden">
+        <strong>Your transfer narration</strong>
+        <div class="ref-code" id="ref-display"></div>
+        <p class="fine-print" style="margin-top:12px;">
+          Include this code in your bank transfer narration / remarks so Finance can match your gift.
+          After transferring, you may email proof of payment to the church office if required.
+        </p>
+      </div>
+    </section>
+
+    <section class="card" id="bank-card">
+      <h2>Bank transfer details</h2>
+      <p class="fine-print" style="margin-bottom:8px;">
+        Replace the placeholder details below with your congregation’s official accounts (edit this file).
+      </p>
+
+      <div class="bank-row">
+        <span class="bank-label">Account name</span>
+        <span class="bank-value" style="max-width:62%">Christ Apostolic Church (All Saints) DCC</span>
+      </div>
+      <div class="bank-row">
+        <span class="bank-label">Bank</span>
+        <span class="bank-value">Guaranty Trust Bank Plc</span>
+      </div>
+      <div class="bank-row">
+        <span class="bank-label">Account number</span>
+        <span style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:flex-end;">
+          <span class="bank-value mono" id="acct-num">0123456789</span>
+          <button type="button" class="btn-copy" data-copy="acct-num">Copy</button>
+        </span>
+      </div>
+      <div class="bank-row">
+        <span class="bank-label">Currency</span>
+        <span class="bank-value">NGN</span>
+      </div>
+
+      <div class="note">
+        <strong style="font-family:'Cinzel',serif;font-size:11px;letter-spacing:1px;color:var(--purple);">Giving scriptures</strong><br>
+        <span style="font-style:italic;">“Bring ye all the tithes into the storehouse…” — Malachi 3:10</span><br><br>
+        Online submissions here do not pull funds automatically — gifts are completed by <strong>bank transfer</strong> using the details above.
+      </div>
+    </section>
+  </div>
+</div>
+
+<script>
+(function () {
+  var form = document.getElementById('give-form');
+  var confirmMsg = document.getElementById('confirm-msg');
+  var refPanel = document.getElementById('reference-panel');
+  var refDisplay = document.getElementById('ref-display');
+  var btnReset = document.getElementById('btn-reset');
+
+  function slug(s) {
+    return String(s || '').trim().replace(/\s+/g, '-').replace(/[^a-zA-Z0-9-]/g, '').slice(0, 24);
+  }
+
+  form.addEventListener('submit', function (e) {
+    e.preventDefault();
+    confirmMsg.classList.add('hidden');
+    refPanel.classList.add('hidden');
+
+    var name = document.getElementById('g-name').value.trim();
+    var amount = document.getElementById('g-amount').value;
+    var type = document.getElementById('g-type').value;
+
+    if (!name || !amount || !type) {
+      confirmMsg.textContent = 'Please fill in your name, amount, and giving type.';
+      confirmMsg.style.background = 'rgba(180,40,40,0.1)';
+      confirmMsg.style.borderColor = 'rgba(180,40,40,0.35)';
+      confirmMsg.style.color = '#7a1f1f';
+      confirmMsg.classList.remove('hidden');
+      return;
+    }
+
+    var num = Number(amount);
+    if (!Number.isFinite(num) || num < 100) {
+      confirmMsg.textContent = 'Enter a valid amount (minimum ₦100).';
+      confirmMsg.style.background = 'rgba(180,40,40,0.1)';
+      confirmMsg.style.borderColor = 'rgba(180,40,40,0.35)';
+      confirmMsg.style.color = '#7a1f1f';
+      confirmMsg.classList.remove('hidden');
+      return;
+    }
+
+    var stamp = Date.now().toString(36).toUpperCase();
+    var ref = 'CAC-' + type.toUpperCase().slice(0, 4) + '-' + slug(name).toUpperCase() + '-' + stamp.slice(-6);
+    refDisplay.textContent = ref;
+    refPanel.classList.remove('hidden');
+
+    confirmMsg.style.background = 'rgba(34, 139, 34, 0.12)';
+    confirmMsg.style.borderColor = 'rgba(34, 139, 34, 0.35)';
+    confirmMsg.style.color = '#1e5c1e';
+    confirmMsg.textContent = 'Reference generated. Complete your transfer using the bank details — use the narration shown.';
+    confirmMsg.classList.remove('hidden');
+
+    refPanel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  });
+
+  btnReset.addEventListener('click', function () {
+    confirmMsg.classList.add('hidden');
+    refPanel.classList.add('hidden');
+  });
+
+  document.querySelectorAll('[data-copy]').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      var id = btn.getAttribute('data-copy');
+      var el = document.getElementById(id);
+      if (!el) return;
+      var text = el.textContent.trim();
+      navigator.clipboard.writeText(text).then(function () {
+        var prev = btn.textContent;
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = prev; }, 1600);
+      }).catch(function () {
+        prompt('Copy account number:', text);
+      });
+    });
+  });
+})();
+</script>
+</body>
+</html>
