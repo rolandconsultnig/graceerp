@@ -96,6 +96,9 @@ app.use(morgan('combined', { stream: { write: msg => logger.http(msg.trim()) } }
 // Static files (uploaded media)
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
+// Static files (frontend build)
+app.use(express.static(path.join(__dirname, '../public')));
+
 // ── Health check ──────────────────────────────────────────────────────────────
 app.get('/health', (req, res) => {
   res.json({
@@ -129,6 +132,11 @@ app.use('/api/analytics',       analyticsRoutes);
 app.use('/api/audit',           auditRoutes);
 app.use('/api/projects',        projectRoutes);
 app.use('/api/member-portal',  memberPortalRoutes);
+
+// ── Serve React app for all non-API routes (client-side routing) ─────────────
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, '../public/index.html'));
+});
 
 // ── Error handling ────────────────────────────────────────────────────────────
 app.use(notFound);
