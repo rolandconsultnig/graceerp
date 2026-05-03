@@ -111,8 +111,8 @@ export default function Layout() {
 
   return (
     <div className="flex h-screen bg-gray-50 font-body overflow-hidden">
-      {/* SIDEBAR */}
-      <aside className="w-64 flex-shrink-0 bg-sidebar-bg flex flex-col overflow-y-auto">
+      {/* SIDEBAR - Hidden on mobile, shown on md+ screens */}
+      <aside className="hidden md:flex w-64 flex-shrink-0 bg-sidebar-bg flex-col overflow-y-auto">
         {/* Logo */}
         <div className="p-5 border-b border-sidebar-border">
           <div className="mb-4 flex justify-center">
@@ -192,11 +192,112 @@ export default function Layout() {
         </div>
       </aside>
 
+      {/* MOBILE SIDEBAR OVERLAY */}
+      {mobileMenuOpen && (
+        <div 
+          className="fixed inset-0 bg-black/50 z-40 md:hidden"
+          onClick={() => setMobileMenuOpen(false)}
+        />
+      )}
+      
+      {/* MOBILE SIDEBAR */}
+      <aside className={`fixed inset-y-0 left-0 z-50 w-64 bg-sidebar-bg flex flex-col overflow-y-auto transform transition-transform duration-300 ease-in-out md:hidden ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+        {/* Logo */}
+        <div className="p-5 border-b border-sidebar-border">
+          <div className="mb-4 flex justify-center">
+            <img
+              src={CHURCH_LOGO_SRC}
+              alt={CHURCH_NAME}
+              className="w-full max-h-[8.5rem] object-contain rounded-2xl bg-white p-3 shadow-[0_18px_40px_-15px_rgba(0,0,0,0.55)] ring-[3px] ring-purple-400/35"
+            />
+          </div>
+          <h2 className="text-xs font-semibold text-purple-100 font-display leading-snug">{CHURCH_NAME}</h2>
+          <p className="text-xs text-purple-400 mt-1">{CHURCH_LOCATION}</p>
+        </div>
+
+        {/* Nav */}
+        <nav className="flex-1 py-4">
+          {navItems.map(({ section, links }) => {
+            const visibleLinks = links.filter((link) =>
+              canAccessRoute(user?.role, pathToSegment(link.to))
+            );
+            if (!visibleLinks.length) return null;
+            return (
+            <div key={section}>
+              <p className="px-4 py-2 text-xs font-semibold uppercase tracking-widest text-purple-500">
+                {section}
+              </p>
+              {visibleLinks
+                .map(({ to, icon, label, badge }) => {
+                  let navBadge = badge;
+                  if (to === '/pastoral' && pastoralOpenCount != null && pastoralOpenCount > 0) {
+                    navBadge = pastoralOpenCount > 99 ? '99+' : String(pastoralOpenCount);
+                  } else if (to === '/pastoral') {
+                    navBadge = undefined;
+                  }
+                  return (
+                <NavLink
+                  key={to}
+                  to={to}
+                  onClick={() => setMobileMenuOpen(false)}
+                  className={({ isActive }) =>
+                    `flex items-center gap-3 mx-2 px-3 py-2.5 rounded-lg text-sm transition-all mb-0.5 ${
+                      isActive
+                        ? 'bg-purple-700/30 text-purple-200 border border-purple-500/30'
+                        : 'text-purple-400 hover:bg-purple-800/40 hover:text-purple-200'
+                    }`
+                  }
+                >
+                  <span className="text-base w-5 text-center">{icon}</span>
+                  <span className="flex-1">{label}</span>
+                  {navBadge && (
+                    <span className={`text-xs px-1.5 py-0.5 rounded-full font-semibold ${
+                      navBadge === 'LIVE' ? 'bg-red-500 text-white' : 'bg-red-500 text-white'
+                    }`}>
+                      {navBadge}
+                    </span>
+                  )}
+                </NavLink>
+                  );
+                })}
+            </div>
+            );
+          })}
+        </nav>
+
+        {/* User footer */}
+        <div className="p-4 border-t border-sidebar-border">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-full bg-gradient-to-br from-purple-400 to-purple-700 flex items-center justify-center text-white text-xs font-bold">
+              {initials}
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium text-purple-100 truncate">{user?.full_name}</p>
+              <p className="text-xs text-purple-400 truncate capitalize">{user?.role?.replace('_', ' ')} · {user?.branch_name}</p>
+            </div>
+            <button onClick={handleLogout} className="text-purple-400 hover:text-purple-200 text-sm" title="Logout">
+              ⏏
+            </button>
+          </div>
+        </div>
+      </aside>
+
       {/* MAIN AREA */}
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* TOPBAR */}
-        <header className="h-16 bg-white border-b border-gray-200 flex items-center px-6 gap-4 shadow-sm flex-shrink-0">
-          <div className="flex-1">
+        <header className="h-16 bg-white border-b border-gray-200 flex items-center px-4 md:px-6 gap-4 shadow-sm flex-shrink-0">
+          {/* Mobile menu button */}
+          <button
+            onClick={() => setMobileMenuOpen(true)}
+            className="md:hidden w-10 h-10 flex items-center justify-center text-gray-600 hover:text-purple-600"
+            aria-label="Open menu"
+          >
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+            </svg>
+          </button>
+          
+          <div className="flex-1 min-w-0">
             <h1 className="text-lg font-semibold font-display text-gray-800">
               {user?.church_name || CHURCH_NAME}
             </h1>
