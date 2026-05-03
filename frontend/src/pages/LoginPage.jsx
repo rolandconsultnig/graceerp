@@ -43,6 +43,7 @@ export default function LoginPage() {
           </h1>
           <p className="text-purple-300 text-sm">{CHURCH_LOCATION}</p>
           <p className="text-purple-500 text-xs mt-2">{PLATFORM_NAME}</p>
+          <p className="text-purple-400/80 text-xs mt-1 italic">Pastor (Prof.) Anthony Adegbulugbe</p>
         </div>
 
         {/* Card */}
@@ -93,18 +94,13 @@ export default function LoginPage() {
             </button>
           </form>
 
-          {showDemoCredentials && (
-            <div className="mt-6 p-4 bg-purple-900/20 border border-purple-800/30 rounded-lg">
-              <p className="text-xs text-purple-400 font-medium mb-2 uppercase tracking-wider">Demo credentials</p>
-              <div className="space-y-1 text-xs text-purple-300">
-                <div className="flex justify-between"><span>Super Admin:</span><span className="font-mono">admin@clci.org</span></div>
-                <div className="flex justify-between"><span>Finance:</span><span className="font-mono">finance@clci.org</span></div>
-                <div className="flex justify-between"><span>Branch Admin:</span><span className="font-mono">lagos.admin@clci.org</span></div>
-                <div className="flex justify-between"><span>Member portal:</span><span className="font-mono">member@clci.org</span></div>
-                <div className="flex justify-between mt-1 pt-1 border-t border-purple-800/40"><span>Password (all):</span><span className="font-mono">GraceERP@2025</span></div>
-              </div>
+          <div className="mt-6 p-4 bg-purple-900/20 border border-purple-800/30 rounded-lg">
+            <p className="text-xs text-purple-400 font-medium mb-2 uppercase tracking-wider">Login credentials</p>
+            <div className="space-y-1 text-xs text-purple-300">
+              <div className="flex justify-between"><span>Email:</span><span className="font-mono">admin@clci.org</span></div>
+              <div className="flex justify-between"><span>Password:</span><span className="font-mono">GraceERP@2025</span></div>
             </div>
-          )}
+          </div>
         </div>
 
         <p className="text-center text-purple-600 text-xs mt-6">
