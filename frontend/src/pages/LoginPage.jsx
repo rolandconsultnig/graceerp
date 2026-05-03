@@ -43,7 +43,6 @@ export default function LoginPage() {
           </h1>
           <p className="text-purple-300 text-sm">{CHURCH_LOCATION}</p>
           <p className="text-purple-500 text-xs mt-2">{PLATFORM_NAME}</p>
-          <p className="text-purple-400/80 text-xs mt-1 italic">Pastor (Prof.) Anthony Adegbulugbe</p>
         </div>
 
         {/* Card */}
