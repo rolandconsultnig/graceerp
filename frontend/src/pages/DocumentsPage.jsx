@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import useAuthStore from '../context/authStore';
 import { documentsAPI, branchesAPI } from '../services/api';
-import { PageHeader, Card, Badge, Button, Modal, Input, Select, Spinner, Table } from '../components/UI';
+import { PageHeader, Card, Badge, Button, Modal, Input, Select, Spinner, Table, NoticeBanner } from '../components/UI';
 
 const canManageDocs = (role) => ['super_admin', 'branch_admin'].includes(role || '');
 
@@ -27,6 +27,8 @@ export default function DocumentsPage() {
   });
   const [editDoc, setEditDoc] = useState(null);
   const [saving, setSaving] = useState(false);
+  const [notice, setNotice] = useState(null);
+  const notify = (type, text) => setNotice({ type, text });
 
   useEffect(() => {
     branchesAPI
@@ -78,7 +80,7 @@ export default function DocumentsPage() {
 
   const submitUpload = async () => {
     if (!file) {
-      alert('Choose a file.');
+      notify('error', 'Choose a file.');
       return;
     }
     const fd = new FormData();
@@ -93,9 +95,10 @@ export default function DocumentsPage() {
     try {
       await documentsAPI.uploadFile(fd);
       setUploadOpen(false);
+      notify('success', 'Document uploaded successfully.');
       load();
     } catch (e) {
-      alert(e.response?.data?.message || 'Upload failed.');
+      notify('error', e.response?.data?.message || 'Upload failed.');
     } finally {
       setSaving(false);
     }
@@ -103,6 +106,10 @@ export default function DocumentsPage() {
 
   const saveEdit = async () => {
     if (!editDoc) return;
+    if (!editDoc.title?.trim()) {
+      notify('error', 'Document title is required.');
+      return;
+    }
     const raw = (editDoc.tagsStr ?? '').trim();
     let tagsPayload = undefined;
     if (raw) {
@@ -123,9 +130,10 @@ export default function DocumentsPage() {
         tags: tagsPayload,
       });
       setEditDoc(null);
+      notify('success', 'Document metadata updated.');
       load();
     } catch (e) {
-      alert(e.response?.data?.message || 'Update failed.');
+      notify('error', e.response?.data?.message || 'Update failed.');
     } finally {
       setSaving(false);
     }
@@ -135,9 +143,10 @@ export default function DocumentsPage() {
     if (!confirm('Delete this document record?')) return;
     try {
       await documentsAPI.remove(d.id);
+      notify('success', 'Document deleted.');
       load();
     } catch (e) {
-      alert(e.response?.data?.message || 'Delete failed.');
+      notify('error', e.response?.data?.message || 'Delete failed.');
     }
   };
 
@@ -150,6 +159,7 @@ export default function DocumentsPage() {
         subtitle="Policies, manuals, and uploaded files"
         action={canManage ? <Button onClick={openUpload}>+ Upload</Button> : null}
       />
+      {notice && <NoticeBanner type={notice.type}>{notice.text}</NoticeBanner>}
 
       <Card>
         <div className="p-5 border-b flex flex-wrap gap-3">

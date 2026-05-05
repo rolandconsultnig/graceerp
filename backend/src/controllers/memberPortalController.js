@@ -1,5 +1,6 @@
 const { query } = require('../config/database');
 const { asyncHandler } = require('../middleware/errorHandler');
+const { notifyChatRefresh } = require('../services/portalChatHub');
 
 const MEMBER_EDITABLE = [
   'first_name',
@@ -99,6 +100,43 @@ exports.uploadPhoto = asyncHandler(async (req, res) => {
   res.json({ success: true, data: upd.rows[0] });
 });
 
+function parsePortalRingMs(raw, fallback) {
+  const n = parseInt(raw, 10);
+  if (!Number.isFinite(n)) return fallback;
+  return Math.min(300000, Math.max(10000, n));
+}
+
+function portalCallTimeouts() {
+  return {
+    outgoingMs: parsePortalRingMs(process.env.PORTAL_CHAT_OUTGOING_RING_MS, 55000),
+    incomingMs: parsePortalRingMs(process.env.PORTAL_CHAT_INCOMING_RING_MS, 75000),
+  };
+}
+
+// GET /api/member-portal/chat/webrtc-config — iceServers + ring timeouts for portal WebRTC UI
+exports.webrtcConfig = asyncHandler(async (req, res) => {
+  const callTimeouts = portalCallTimeouts();
+  const rawJson = process.env.WEBRTC_ICE_SERVERS_JSON;
+  if (rawJson && String(rawJson).trim().startsWith('[')) {
+    try {
+      const parsed = JSON.parse(rawJson);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        return res.json({ success: true, data: { iceServers: parsed, callTimeouts } });
+      }
+    } catch {
+      /* fall through to STUN list */
+    }
+  }
+
+  const raw = process.env.WEBRTC_STUN_URLS || 'stun:stun.l.google.com:19302';
+  const iceServers = raw
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean)
+    .map((urls) => ({ urls }));
+  res.json({ success: true, data: { iceServers, callTimeouts } });
+});
+
 // GET /api/member-portal/chat/messages
 exports.listMyChat = asyncHandler(async (req, res) => {
   const m = req.portalMember;
@@ -125,6 +163,7 @@ exports.postMyMessage = asyncHandler(async (req, res) => {
      VALUES ($1, $2, false, NULL, $3) RETURNING *`,
     [req.user.church_id, m.id, body]
   );
+  notifyChatRefresh(m.id);
   res.status(201).json({ success: true, data: ins.rows[0] });
 });
 
@@ -205,5 +244,6 @@ exports.staffReply = asyncHandler(async (req, res) => {
 
   const row = ins.rows[0];
   row.staff_name = req.user.full_name;
+  notifyChatRefresh(memberId);
   res.status(201).json({ success: true, data: row });
 });

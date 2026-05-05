@@ -30,7 +30,9 @@ function ensureJwtSecrets() {
 
 ensureJwtSecrets();
 
+const http = require('http');
 const express = require('express');
+const { attachPortalChatWebSocket } = require('./portalChatSocket');
 const helmet = require('helmet');
 const cors = require('cors');
 const compression = require('compression');
@@ -160,7 +162,9 @@ app.use(errorHandler);
 
 // ── Start server ──────────────────────────────────────────────────────────────
 const PORT = process.env.PORT || 2020;
-app.listen(PORT, () => {
+const server = http.createServer(app);
+attachPortalChatWebSocket(server);
+server.listen(PORT, () => {
   logger.info(`GraceERP API running on port ${PORT} [${process.env.NODE_ENV}]`);
 });
 

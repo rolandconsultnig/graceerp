@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import useAuthStore from '../context/authStore';
 import { canManageHrModule } from '../constants/roleAccess';
 import { hrAPI, branchesAPI } from '../services/api';
-import { PageHeader, Card, Badge, Button, Modal, Input, Select, Spinner, Table } from '../components/UI';
+import { PageHeader, Card, Badge, Button, Modal, Input, Select, Spinner, Table, NoticeBanner } from '../components/UI';
 
 function TabButton({ active, children, onClick }) {
   return (
@@ -48,6 +48,8 @@ export default function HRPage() {
   const [leaveStaffPick, setLeaveStaffPick] = useState([]);
   const [editLeave, setEditLeave] = useState(null);
   const [saving, setSaving] = useState(false);
+  const [notice, setNotice] = useState(null);
+  const notify = (type, text) => setNotice({ type, text });
 
   useEffect(() => {
     branchesAPI
@@ -131,11 +133,11 @@ export default function HRPage() {
 
   const saveStaff = async () => {
     if (!staffForm.full_name?.trim()) {
-      alert('Full name is required.');
+      notify('error', 'Full name is required.');
       return;
     }
     if (!staffForm.branch_id) {
-      alert('Select a branch.');
+      notify('error', 'Select a branch.');
       return;
     }
     setSaving(true);
@@ -155,9 +157,10 @@ export default function HRPage() {
         await hrAPI.create(payload);
       }
       setStaffModal(false);
+      notify('success', staffForm.id ? 'Staff record updated.' : 'Staff record created.');
       loadStaff();
     } catch (e) {
-      alert(e.response?.data?.message || 'Could not save staff record.');
+      notify('error', e.response?.data?.message || 'Could not save staff record.');
     } finally {
       setSaving(false);
     }
@@ -167,9 +170,10 @@ export default function HRPage() {
     if (!confirm(`Remove staff record for ${s.full_name}? This cannot be undone.`)) return;
     try {
       await hrAPI.remove(s.id);
+      notify('success', 'Staff record removed.');
       loadStaff();
     } catch (e) {
-      alert(e.response?.data?.message || 'Could not remove staff.');
+      notify('error', e.response?.data?.message || 'Could not remove staff.');
     }
   };
 
@@ -195,7 +199,11 @@ export default function HRPage() {
 
   const saveLeave = async () => {
     if (!leaveForm.staff_id || !leaveForm.start_date || !leaveForm.end_date) {
-      alert('Staff and dates are required.');
+      notify('error', 'Staff and dates are required.');
+      return;
+    }
+    if (leaveForm.end_date < leaveForm.start_date) {
+      notify('error', 'End date cannot be earlier than start date.');
       return;
     }
     setSaving(true);
@@ -209,9 +217,10 @@ export default function HRPage() {
         reason: leaveForm.reason || undefined,
       });
       setLeaveModal(false);
+      notify('success', 'Leave request submitted.');
       loadLeave();
     } catch (e) {
-      alert(e.response?.data?.message || 'Could not submit leave request.');
+      notify('error', e.response?.data?.message || 'Could not submit leave request.');
     } finally {
       setSaving(false);
     }
@@ -223,9 +232,10 @@ export default function HRPage() {
     try {
       await hrAPI.updateLeaveRequest(editLeave.id, { status: editLeave.status });
       setEditLeave(null);
+      notify('success', 'Leave status updated.');
       loadLeave();
     } catch (e) {
-      alert(e.response?.data?.message || 'Could not update leave.');
+      notify('error', e.response?.data?.message || 'Could not update leave.');
     } finally {
       setSaving(false);
     }
@@ -251,6 +261,7 @@ export default function HRPage() {
           ) : null
         }
       />
+      {notice && <NoticeBanner type={notice.type}>{notice.text}</NoticeBanner>}
 
       <div className="flex gap-2 mb-4">
         <TabButton active={tab === 'staff'} onClick={() => setTab('staff')}>

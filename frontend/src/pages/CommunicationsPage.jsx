@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import useAuthStore from '../context/authStore';
 import { commsAPI, branchesAPI } from '../services/api';
-import { PageHeader, Card, Badge, Button, Modal, Input, Select, Spinner, Table } from '../components/UI';
+import { PageHeader, Card, Badge, Button, Modal, Input, Select, Spinner, Table, NoticeBanner } from '../components/UI';
 
 const textAreaCls =
   'w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2.5 text-sm text-gray-800 placeholder-gray-400 focus:outline-none focus:border-purple-400 focus:ring-2 focus:ring-purple-100 min-h-[120px]';
@@ -29,6 +29,8 @@ export default function CommunicationsPage() {
   const [modal, setModal] = useState(false);
   const [form, setForm] = useState({});
   const [saving, setSaving] = useState(false);
+  const [notice, setNotice] = useState(null);
+  const notify = (type, text) => setNotice({ type, text });
 
   useEffect(() => {
     branchesAPI
@@ -82,7 +84,7 @@ export default function CommunicationsPage() {
 
   const save = async () => {
     if (!form.title?.trim() || !form.body?.trim()) {
-      alert('Title and body are required.');
+      notify('error', 'Title and body are required.');
       return;
     }
     setSaving(true);
@@ -96,9 +98,10 @@ export default function CommunicationsPage() {
         status: form.status,
       });
       setModal(false);
+      notify('success', 'Message saved.');
       load();
     } catch (e) {
-      alert(e.response?.data?.message || 'Could not save message.');
+      notify('error', e.response?.data?.message || 'Could not save message.');
     } finally {
       setSaving(false);
     }
@@ -107,9 +110,10 @@ export default function CommunicationsPage() {
   const sendMsg = async (id) => {
     try {
       await commsAPI.send(id);
+      notify('success', 'Send queued.');
       load();
     } catch (e) {
-      alert(e.response?.data?.message || 'Send failed.');
+      notify('error', e.response?.data?.message || 'Send failed.');
     }
   };
 
@@ -117,9 +121,10 @@ export default function CommunicationsPage() {
     if (!confirm('Delete this message?')) return;
     try {
       await commsAPI.remove(id);
+      notify('success', 'Message deleted.');
       load();
     } catch (e) {
-      alert(e.response?.data?.message || 'Delete failed.');
+      notify('error', e.response?.data?.message || 'Delete failed.');
     }
   };
 
@@ -130,6 +135,8 @@ export default function CommunicationsPage() {
         subtitle="Outbound message drafts and delivery log"
         action={canManage ? <Button onClick={openModal}>+ Compose</Button> : null}
       />
+
+      {notice && <NoticeBanner type={notice.type}>{notice.text}</NoticeBanner>}
 
       <Card>
         <div className="p-5 border-b flex flex-wrap gap-3 items-center">

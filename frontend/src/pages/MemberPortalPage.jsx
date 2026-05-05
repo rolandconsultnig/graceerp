@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { memberPortalAPI } from '../services/api';
-import { PageHeader, Card, Button, Input, Select, Spinner } from '../components/UI';
+import { PageHeader, Card, Button, Input, Select, Spinner, NoticeBanner } from '../components/UI';
+import PortalWebRtcDock from '../components/PortalWebRtcDock';
+import { usePortalChat } from '../hooks/usePortalChat';
 
 const EDIT_KEYS = [
   'first_name',
@@ -50,6 +52,9 @@ export default function MemberPortalPage() {
   const [messages, setMessages] = useState([]);
   const [chatBody, setChatBody] = useState('');
   const [chatSending, setChatSending] = useState(false);
+  const [chatNotice, setChatNotice] = useState(null);
+  const [peerTyping, setPeerTyping] = useState(false);
+  const typingHideRef = useRef(null);
   const chatEndRef = useRef(null);
   const photoInputRef = useRef(null);
 
@@ -92,16 +97,45 @@ export default function MemberPortalPage() {
     }
   }, []);
 
+  const portalChat = usePortalChat({
+    memberId: profile?.id,
+    role: 'member',
+    enabled: tab === 'chat' && !!profile?.id,
+    onRefresh: loadChat,
+  });
+
   useEffect(() => {
     if (tab !== 'chat') return undefined;
     loadChat();
-    const id = setInterval(loadChat, 4000);
+    const ms = portalChat.wsConnected ? 45000 : 5000;
+    const id = setInterval(loadChat, ms);
     return () => clearInterval(id);
-  }, [tab, loadChat]);
+  }, [tab, loadChat, portalChat.wsConnected]);
 
   useEffect(() => {
     if (tab === 'chat') scrollChatToEnd();
   }, [tab, messages]);
+
+  useEffect(() => {
+    return portalChat.subscribeSignals((msg) => {
+      if (msg.type !== 'typing') return;
+      if (msg.fromRole !== 'staff') return;
+      setPeerTyping(true);
+      if (typingHideRef.current) clearTimeout(typingHideRef.current);
+      typingHideRef.current = setTimeout(() => setPeerTyping(false), 2600);
+    });
+  }, [portalChat.subscribeSignals]);
+
+  useEffect(
+    () => () => {
+      if (typingHideRef.current) clearTimeout(typingHideRef.current);
+    },
+    []
+  );
+
+  useEffect(() => {
+    if (tab !== 'chat') setPeerTyping(false);
+  }, [tab]);
 
   const saveProfile = async (e) => {
     e.preventDefault();
@@ -152,10 +186,11 @@ export default function MemberPortalPage() {
     try {
       await memberPortalAPI.postChat(text);
       setChatBody('');
+      setChatNotice(null);
       await loadChat();
       scrollChatToEnd();
     } catch (err) {
-      alert(err.response?.data?.message || 'Could not send message.');
+      setChatNotice({ type: 'error', text: err.response?.data?.message || 'Could not send message.' });
     } finally {
       setChatSending(false);
     }
@@ -394,12 +429,30 @@ export default function MemberPortalPage() {
       )}
 
       {tab === 'chat' && (
-        <Card className="overflow-hidden">
-          <div className="p-4 border-b border-gray-100 bg-gray-50">
+        <Card className="overflow-hidden flex flex-col min-h-[min(520px,75dvh)] max-h-[min(90dvh,900px)]">
+          <div className="p-4 border-b border-gray-100 bg-gray-50 shrink-0">
             <h3 className="font-semibold text-gray-800">Messages with the office</h3>
-            <p className="text-xs text-gray-500 mt-0.5">Staff typically reply during office hours. This page refreshes every few seconds.</p>
+            <p className="text-xs text-gray-500 mt-0.5">
+              Messages sync live when connected. Voice/video use WebRTC (mic/camera need HTTPS unless you are on localhost).
+            </p>
           </div>
-          <div className="h-[min(420px,55vh)] overflow-y-auto p-4 space-y-3 bg-gray-50/80">
+          <PortalWebRtcDock
+            subscribeSignals={portalChat.subscribeSignals}
+            sendSignal={portalChat.sendSignal}
+            wsConnected={portalChat.wsConnected}
+            selfRole="member"
+          />
+          {chatNotice && (
+            <NoticeBanner type="error" className="mx-4 mt-4 mb-0">
+              {chatNotice.text}
+            </NoticeBanner>
+          )}
+          {peerTyping && (
+            <div className="px-4 py-1.5 text-xs text-purple-700 bg-purple-50/90 border-b border-purple-100 shrink-0">
+              Someone from the office is typing…
+            </div>
+          )}
+          <div className="flex-1 min-h-0 overflow-y-auto p-4 space-y-3 bg-gray-50/80">
             {messages.length === 0 ? (
               <p className="text-sm text-gray-500 text-center py-8">No messages yet. Say hello below.</p>
             ) : (
@@ -428,12 +481,17 @@ export default function MemberPortalPage() {
             )}
             <div ref={chatEndRef} />
           </div>
-          <form onSubmit={sendChat} className="p-4 border-t border-gray-100 flex gap-2 bg-white">
+          <form onSubmit={sendChat} className="p-4 border-t border-gray-100 flex gap-2 bg-white shrink-0">
             <input
               className="flex-1 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:border-purple-400 focus:ring-2 focus:ring-purple-100"
               placeholder="Type a message…"
               value={chatBody}
-              onChange={(e) => setChatBody(e.target.value)}
+              onChange={(e) => {
+                const v = e.target.value;
+                setChatBody(v);
+                setChatNotice(null);
+                if (v.trim()) portalChat.sendTyping();
+              }}
             />
             <Button type="submit" disabled={chatSending || !chatBody.trim()}>
               Send

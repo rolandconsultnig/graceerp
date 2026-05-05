@@ -333,6 +333,36 @@ FRONTEND_URL=https://your-domain.com
 | File storage | AWS S3 + CloudFront (for media files) |
 | CDN | Cloudflare |
 
+### Portal chat — WebSocket & WebRTC
+
+The member portal and staff inbox use a **WebSocket** at `/ws/portal-chat` on the **same host and port as the API** (`ws:` or `wss:` follows your site protocol). Local dev with Vite proxies `/ws` to the backend (see `frontend/vite.config.js`).
+
+**Nginx (Upgrade)** — if TLS terminates on nginx, proxy upgrades to Node:
+
+```nginx
+location /ws {
+  proxy_pass http://127.0.0.1:2020;
+  proxy_http_version 1.1;
+  proxy_set_header Upgrade $http_upgrade;
+  proxy_set_header Connection "upgrade";
+  proxy_set_header Host $host;
+  proxy_read_timeout 86400;
+}
+```
+
+**Environment (backend `.env`)** — see `backend/.env.example`:
+
+| Variable | Purpose |
+|----------|---------|
+| `WEBRTC_STUN_URLS` | Comma-separated STUN URLs (default includes Google STUN). |
+| `WEBRTC_ICE_SERVERS_JSON` | Optional JSON array of full `iceServers` entries (use for **TURN** with `username` / `credential`). |
+| `PORTAL_CHAT_OUTGOING_RING_MS` | Max wait for callee to answer an outbound call (clamped 10s–300s). |
+| `PORTAL_CHAT_INCOMING_RING_MS` | Auto-decline incoming modal if unanswered (clamped 10s–300s). |
+
+**Restart the API** after editing these variables (they load at process startup). Users receive updated ICE servers and ring durations when the app calls `GET /api/member-portal/chat/webrtc-config` again—typically after a page refresh or revisiting the portal chat.
+
+Mic/camera require **HTTPS** in production (localhost over HTTP is exempt). Symmetric NAT or strict firewalls usually need your own **TURN** server (e.g. Coturn); configure via `WEBRTC_ICE_SERVERS_JSON`.
+
 ---
 
 ## Developed By

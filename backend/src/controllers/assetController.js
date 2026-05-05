@@ -11,6 +11,19 @@ function enrichRows(rows) {
   return rows.map((r) => attachDepreciation(r));
 }
 
+let salvageColumnExistsCache = null;
+async function hasSalvageValueColumn() {
+  if (salvageColumnExistsCache != null) return salvageColumnExistsCache;
+  const r = await query(
+    `SELECT 1
+     FROM information_schema.columns
+     WHERE table_schema = 'public' AND table_name = 'assets' AND column_name = 'salvage_value'
+     LIMIT 1`
+  );
+  salvageColumnExistsCache = r.rows.length > 0;
+  return salvageColumnExistsCache;
+}
+
 exports.list = asyncHandler(async (req, res) => {
   const churchId = req.user.church_id;
   const { page = 1, limit = 20, search, category, status } = req.query;
@@ -99,36 +112,47 @@ exports.create = asyncHandler(async (req, res) => {
   const st = STATUSES.includes(body.status) ? body.status : 'active';
 
   try {
+    const withSalvage = await hasSalvageValueColumn();
+    const cols = [
+      'church_id', 'branch_id', 'asset_tag', 'name', 'description', 'category', 'serial_number',
+      'purchase_date', 'purchase_cost', 'current_value',
+    ];
+    const vals = [
+      churchId,
+      bid,
+      body.asset_tag.trim(),
+      body.name.trim(),
+      body.description || null,
+      cat,
+      body.serial_number?.trim() || null,
+      body.purchase_date || null,
+      body.purchase_cost ?? null,
+      body.current_value ?? null,
+    ];
+    if (withSalvage) {
+      cols.push('salvage_value');
+      vals.push(body.salvage_value ?? null);
+    }
+    cols.push(
+      'currency', 'depreciation_method', 'useful_life_years', 'location', 'custodian_id',
+      'insurance_policy', 'insurance_expiry', 'status', 'photo_url'
+    );
+    vals.push(
+      body.currency || 'NGN',
+      dep,
+      body.useful_life_years ?? null,
+      body.location?.trim() || null,
+      body.custodian_id || null,
+      body.insurance_policy?.trim() || null,
+      body.insurance_expiry || null,
+      st,
+      body.photo_url?.trim() || null
+    );
+    const placeholders = vals.map((_, i) => `$${i + 1}`).join(',');
+
     const ins = await query(
-      `INSERT INTO assets (
-        church_id, branch_id, asset_tag, name, description, category, serial_number,
-        purchase_date, purchase_cost, current_value, salvage_value, currency, depreciation_method,
-        useful_life_years, location, custodian_id, insurance_policy, insurance_expiry,
-        status, photo_url
-      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20)
-      RETURNING *`,
-      [
-        churchId,
-        bid,
-        body.asset_tag.trim(),
-        body.name.trim(),
-        body.description || null,
-        cat,
-        body.serial_number?.trim() || null,
-        body.purchase_date || null,
-        body.purchase_cost ?? null,
-        body.current_value ?? null,
-        body.salvage_value ?? null,
-        body.currency || 'NGN',
-        dep,
-        body.useful_life_years ?? null,
-        body.location?.trim() || null,
-        body.custodian_id || null,
-        body.insurance_policy?.trim() || null,
-        body.insurance_expiry || null,
-        st,
-        body.photo_url?.trim() || null,
-      ]
+      `INSERT INTO assets (${cols.join(', ')}) VALUES (${placeholders}) RETURNING *`,
+      vals
     );
     res.status(201).json({ success: true, data: attachDepreciation(ins.rows[0]) });
   } catch (e) {
@@ -151,7 +175,6 @@ exports.update = asyncHandler(async (req, res) => {
     'purchase_date',
     'purchase_cost',
     'current_value',
-    'salvage_value',
     'currency',
     'depreciation_method',
     'useful_life_years',
@@ -166,6 +189,9 @@ exports.update = asyncHandler(async (req, res) => {
   const patch = {};
   for (const k of allowed) {
     if (Object.prototype.hasOwnProperty.call(req.body, k)) patch[k] = req.body[k];
+  }
+  if (Object.prototype.hasOwnProperty.call(req.body, 'salvage_value') && (await hasSalvageValueColumn())) {
+    patch.salvage_value = req.body.salvage_value;
   }
 
   if (patch.category != null && !CATEGORIES.includes(patch.category)) delete patch.category;

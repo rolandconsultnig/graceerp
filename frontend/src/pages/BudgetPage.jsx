@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import useAuthStore from '../context/authStore';
 import { budgetAPI, branchesAPI } from '../services/api';
-import { PageHeader, Card, Badge, Button, Modal, Input, Select, Spinner, Table } from '../components/UI';
+import { PageHeader, Card, Badge, Button, Modal, Input, Select, Spinner, Table, NoticeBanner } from '../components/UI';
 
 function TabButton({ active, children, onClick }) {
   return (
@@ -86,6 +86,8 @@ export default function BudgetPage() {
   const [rejectTarget, setRejectTarget] = useState(null);
   const [rejectReason, setRejectReason] = useState('');
   const [rejectSaving, setRejectSaving] = useState(false);
+  const [notice, setNotice] = useState(null);
+  const notify = (type, text) => setNotice({ type, text });
 
   useEffect(() => {
     branchesAPI
@@ -143,11 +145,11 @@ export default function BudgetPage() {
 
   const saveBudget = async () => {
     if (!budForm.fiscal_year || !budForm.department?.trim() || budForm.total_amount === '') {
-      alert('Fiscal year, department, and total amount are required.');
+      notify('error', 'Fiscal year, department, and total amount are required.');
       return;
     }
     if (!budForm.branch_id) {
-      alert('Select a branch.');
+      notify('error', 'Select a branch.');
       return;
     }
     setSaving(true);
@@ -160,9 +162,10 @@ export default function BudgetPage() {
         status: budForm.status,
       });
       setBudModal(false);
+      notify('success', 'Budget created successfully.');
       loadBudgets();
     } catch (e) {
-      alert(e.response?.data?.message || 'Could not create budget.');
+      notify('error', e.response?.data?.message || 'Could not create budget.');
     } finally {
       setSaving(false);
     }
@@ -190,11 +193,11 @@ export default function BudgetPage() {
 
   const saveExp = async () => {
     if (!expForm.title?.trim() || expForm.amount === '') {
-      alert('Title and amount are required.');
+      notify('error', 'Title and amount are required.');
       return;
     }
     if (!expForm.branch_id) {
-      alert('Select a branch.');
+      notify('error', 'Select a branch.');
       return;
     }
     setSaving(true);
@@ -208,9 +211,10 @@ export default function BudgetPage() {
         description: expForm.description || undefined,
       });
       setExpModal(false);
+      notify('success', 'Expenditure request submitted.');
       loadExpenditure();
     } catch (e) {
-      alert(e.response?.data?.message || 'Could not create request.');
+      notify('error', e.response?.data?.message || 'Could not create request.');
     } finally {
       setSaving(false);
     }
@@ -231,9 +235,10 @@ export default function BudgetPage() {
       }
       await budgetAPI.updateExpenditure(editExp.id, payload);
       setEditExp(null);
+      notify('success', 'Request updated.');
       loadExpenditure();
     } catch (e) {
-      alert(e.response?.data?.message || 'Could not update.');
+      notify('error', e.response?.data?.message || 'Could not update.');
     } finally {
       setSaving(false);
     }
@@ -242,22 +247,27 @@ export default function BudgetPage() {
   const approveExp = async (row) => {
     try {
       await budgetAPI.approveExpenditure(row.id);
+      notify('success', 'Approval recorded.');
       loadExpenditure();
     } catch (e) {
-      alert(e.response?.data?.message || 'Approval failed.');
+      notify('error', e.response?.data?.message || 'Approval failed.');
     }
   };
 
   const submitReject = async () => {
-    if (!rejectTarget || !rejectReason.trim()) return;
+    if (!rejectTarget || !rejectReason.trim()) {
+      notify('error', 'Enter a rejection reason.');
+      return;
+    }
     setRejectSaving(true);
     try {
       await budgetAPI.rejectExpenditure(rejectTarget.id, { reason: rejectReason.trim() });
       setRejectTarget(null);
       setRejectReason('');
+      notify('success', 'Request rejected.');
       loadExpenditure();
     } catch (e) {
-      alert(e.response?.data?.message || 'Could not reject.');
+      notify('error', e.response?.data?.message || 'Could not reject.');
     } finally {
       setRejectSaving(false);
     }
@@ -274,9 +284,10 @@ export default function BudgetPage() {
     if (!confirm('Delete this expenditure request?')) return;
     try {
       await budgetAPI.deleteExpenditure(row.id);
+      notify('success', 'Expenditure request deleted.');
       loadExpenditure();
     } catch (e) {
-      alert(e.response?.data?.message || 'Could not delete.');
+      notify('error', e.response?.data?.message || 'Could not delete.');
     }
   };
 
@@ -296,6 +307,8 @@ export default function BudgetPage() {
           ) : null
         }
       />
+
+      {notice && <NoticeBanner type={notice.type}>{notice.text}</NoticeBanner>}
 
       <div className="flex gap-2 mb-4">
         <TabButton active={tab === 'budgets'} onClick={() => setTab('budgets')}>

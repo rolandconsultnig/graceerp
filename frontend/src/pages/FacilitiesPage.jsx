@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import useAuthStore from '../context/authStore';
 import { facilitiesAPI, branchesAPI } from '../services/api';
-import { PageHeader, Card, Badge, Button, Modal, Input, Select, Spinner, Table } from '../components/UI';
+import { PageHeader, Card, Badge, Button, Modal, Input, Select, Spinner, Table, NoticeBanner } from '../components/UI';
 
 function TabButton({ active, children, onClick }) {
   return (
@@ -44,6 +44,8 @@ export default function FacilitiesPage() {
   const [bookForm, setBookForm] = useState({});
   const [editBooking, setEditBooking] = useState(null);
   const [saving, setSaving] = useState(false);
+  const [notice, setNotice] = useState(null);
+  const notify = (type, text) => setNotice({ type, text });
 
   useEffect(() => {
     branchesAPI
@@ -111,11 +113,11 @@ export default function FacilitiesPage() {
 
   const saveFacility = async () => {
     if (!facForm.name?.trim()) {
-      alert('Name is required.');
+      notify('error', 'Name is required.');
       return;
     }
     if (!facForm.branch_id) {
-      alert('Select a branch.');
+      notify('error', 'Select a branch.');
       return;
     }
     setSaving(true);
@@ -128,9 +130,10 @@ export default function FacilitiesPage() {
         description: facForm.description || undefined,
       });
       setFacModal(false);
+      notify('success', 'Facility created successfully.');
       loadFacilities();
     } catch (e) {
-      alert(e.response?.data?.message || 'Could not create facility.');
+      notify('error', e.response?.data?.message || 'Could not create facility.');
     } finally {
       setSaving(false);
     }
@@ -160,7 +163,11 @@ export default function FacilitiesPage() {
 
   const saveBooking = async () => {
     if (!bookForm.facility_id || !bookForm.booking_date || !bookForm.start_time || !bookForm.end_time) {
-      alert('Facility, date, start and end times are required.');
+      notify('error', 'Facility, date, start and end times are required.');
+      return;
+    }
+    if (bookForm.start_time >= bookForm.end_time) {
+      notify('error', 'End time must be later than start time.');
       return;
     }
     setSaving(true);
@@ -176,9 +183,10 @@ export default function FacilitiesPage() {
         status: bookForm.status,
       });
       setBookModal(false);
+      notify('success', 'Booking created successfully.');
       loadBookings();
     } catch (e) {
-      alert(e.response?.data?.message || 'Could not create booking.');
+      notify('error', e.response?.data?.message || 'Could not create booking.');
     } finally {
       setSaving(false);
     }
@@ -189,14 +197,23 @@ export default function FacilitiesPage() {
     try {
       await facilitiesAPI.deleteBooking(b.id);
       if (editBooking?.id === b.id) setEditBooking(null);
+      notify('success', 'Booking deleted.');
       loadBookings();
     } catch (e) {
-      alert(e.response?.data?.message || 'Could not delete booking.');
+      notify('error', e.response?.data?.message || 'Could not delete booking.');
     }
   };
 
   const saveBookingEdit = async () => {
     if (!editBooking) return;
+    if (!editBooking.booking_date || !editBooking.start_time || !editBooking.end_time) {
+      notify('error', 'Date, start time, and end time are required.');
+      return;
+    }
+    if (editBooking.start_time >= editBooking.end_time) {
+      notify('error', 'End time must be later than start time.');
+      return;
+    }
     setSaving(true);
     try {
       await facilitiesAPI.updateBooking(editBooking.id, {
@@ -207,9 +224,10 @@ export default function FacilitiesPage() {
         end_time: editBooking.end_time,
       });
       setEditBooking(null);
+      notify('success', 'Booking updated.');
       loadBookings();
     } catch (e) {
-      alert(e.response?.data?.message || 'Could not update booking.');
+      notify('error', e.response?.data?.message || 'Could not update booking.');
     } finally {
       setSaving(false);
     }
@@ -231,6 +249,7 @@ export default function FacilitiesPage() {
           ) : null
         }
       />
+      {notice && <NoticeBanner type={notice.type}>{notice.text}</NoticeBanner>}
 
       <div className="flex gap-2 mb-4">
         <TabButton active={tab === 'facilities'} onClick={() => setTab('facilities')}>

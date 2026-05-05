@@ -2,7 +2,9 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { Navigate } from 'react-router-dom';
 import useAuthStore from '../context/authStore';
 import { memberPortalAPI } from '../services/api';
-import { PageHeader, Card, Button, Spinner } from '../components/UI';
+import { PageHeader, Card, Button, Spinner, NoticeBanner } from '../components/UI';
+import PortalWebRtcDock from '../components/PortalWebRtcDock';
+import { usePortalChat } from '../hooks/usePortalChat';
 
 const STAFF_ROLES = ['super_admin', 'branch_admin', 'pastor'];
 
@@ -16,6 +18,10 @@ export default function MemberInboxPage() {
   const [loadingThread, setLoadingThread] = useState(false);
   const [reply, setReply] = useState('');
   const [sending, setSending] = useState(false);
+  const [notice, setNotice] = useState(null);
+  const notify = (type, text) => setNotice({ type, text });
+  const [peerTyping, setPeerTyping] = useState(false);
+  const typingHideRef = useRef(null);
   const bottomRef = useRef(null);
 
   const canAccess = user && STAFF_ROLES.includes(user.role);
@@ -62,15 +68,48 @@ export default function MemberInboxPage() {
     loadThread(selectedId);
   }, [selectedId, loadThread]);
 
+  const refreshThread = useCallback(() => {
+    if (selectedId) loadThread(selectedId);
+  }, [selectedId, loadThread]);
+
+  const portalChat = usePortalChat({
+    memberId: selectedId,
+    role: 'staff',
+    enabled: !!selectedId && canAccess,
+    onRefresh: refreshThread,
+  });
+
   useEffect(() => {
     if (!selectedId || !canAccess) return undefined;
-    const id = setInterval(() => loadThread(selectedId), 4000);
+    const ms = portalChat.wsConnected ? 45000 : 5000;
+    const id = setInterval(() => loadThread(selectedId), ms);
     return () => clearInterval(id);
-  }, [selectedId, loadThread, canAccess]);
+  }, [selectedId, loadThread, canAccess, portalChat.wsConnected]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [thread]);
+
+  useEffect(() => {
+    return portalChat.subscribeSignals((msg) => {
+      if (msg.type !== 'typing') return;
+      if (msg.fromRole !== 'member') return;
+      setPeerTyping(true);
+      if (typingHideRef.current) clearTimeout(typingHideRef.current);
+      typingHideRef.current = setTimeout(() => setPeerTyping(false), 2600);
+    });
+  }, [portalChat.subscribeSignals]);
+
+  useEffect(
+    () => () => {
+      if (typingHideRef.current) clearTimeout(typingHideRef.current);
+    },
+    []
+  );
+
+  useEffect(() => {
+    setPeerTyping(false);
+  }, [selectedId]);
 
   const sendReply = async (e) => {
     e.preventDefault();
@@ -82,8 +121,9 @@ export default function MemberInboxPage() {
       setReply('');
       await loadThread(selectedId);
       await loadInbox();
+      notify('success', 'Reply sent.');
     } catch (err) {
-      alert(err.response?.data?.message || 'Could not send.');
+      notify('error', err.response?.data?.message || 'Could not send.');
     } finally {
       setSending(false);
     }
@@ -108,7 +148,9 @@ export default function MemberInboxPage() {
         subtitle="Conversations from the member portal"
       />
 
-      <div className="grid lg:grid-cols-5 gap-4 min-h-[480px]">
+      {notice && <NoticeBanner type={notice.type}>{notice.text}</NoticeBanner>}
+
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-4 min-h-[min(520px,80dvh)] lg:min-h-[480px]">
         <Card className="lg:col-span-2 flex flex-col overflow-hidden">
           <div className="p-4 border-b border-gray-100 font-semibold text-gray-800">Members</div>
           <div className="flex-1 overflow-y-auto max-h-[min(560px,65vh)]">
@@ -144,12 +186,12 @@ export default function MemberInboxPage() {
           </div>
         </Card>
 
-        <Card className="lg:col-span-3 flex flex-col overflow-hidden">
+        <Card className="lg:col-span-3 flex flex-col overflow-hidden min-h-[320px] lg:min-h-[min(520px,75dvh)]">
           {!selectedId ? (
             <div className="flex-1 flex items-center justify-center text-sm text-gray-500 p-8">Select a member to view messages.</div>
           ) : (
             <>
-              <div className="p-4 border-b border-gray-100 flex flex-wrap items-baseline justify-between gap-2">
+              <div className="p-4 border-b border-gray-100 flex flex-wrap items-baseline justify-between gap-2 shrink-0">
                 <div>
                   <h3 className="font-semibold text-gray-800">
                     {threadMember
@@ -161,7 +203,18 @@ export default function MemberInboxPage() {
                   )}
                 </div>
               </div>
-              <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-gray-50/80 min-h-[280px] max-h-[min(420px,50vh)]">
+              <PortalWebRtcDock
+                subscribeSignals={portalChat.subscribeSignals}
+                sendSignal={portalChat.sendSignal}
+                wsConnected={portalChat.wsConnected}
+                selfRole="staff"
+              />
+              {peerTyping && (
+                <div className="px-4 py-1.5 text-xs text-purple-700 bg-purple-50/90 border-b border-purple-100 shrink-0">
+                  Member is typing…
+                </div>
+              )}
+              <div className="flex-1 min-h-0 overflow-y-auto p-4 space-y-3 bg-gray-50/80">
                 {loadingThread ? (
                   <Spinner />
                 ) : (
@@ -192,12 +245,16 @@ export default function MemberInboxPage() {
                   </>
                 )}
               </div>
-              <form onSubmit={sendReply} className="p-4 border-t border-gray-100 flex gap-2 bg-white">
+              <form onSubmit={sendReply} className="p-4 border-t border-gray-100 flex gap-2 bg-white shrink-0">
                 <input
                   className="flex-1 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:border-purple-400 focus:ring-2 focus:ring-purple-100"
                   placeholder="Reply…"
                   value={reply}
-                  onChange={(e) => setReply(e.target.value)}
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    setReply(v);
+                    if (v.trim()) portalChat.sendTyping();
+                  }}
                 />
                 <Button type="submit" disabled={sending || !reply.trim()}>
                   Send

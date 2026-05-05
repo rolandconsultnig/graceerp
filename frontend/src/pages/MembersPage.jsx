@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
-import { membersAPI } from '../services/api';
+import { branchesAPI, membersAPI } from '../services/api';
 import useAuthStore from '../context/authStore';
-import { PageHeader, Card, StatsGrid, StatCard, Badge, Button, Modal, Input, Select, Avatar, Spinner, Table } from '../components/UI';
+import { PageHeader, Card, StatsGrid, StatCard, Badge, Button, Modal, Input, Select, Avatar, Spinner, Table, NoticeBanner } from '../components/UI';
 
 const TIERS = ['general_member','cell_leader','deacon','deaconess','minister','pastor','exec_pastor','bishop'];
 const DEPTS = ['Choir','Ushering','Media','Finance','Children','Prayer','IT','Protocol','Welfare','Admin'];
@@ -17,6 +17,7 @@ function memberPhotoSrc(photoUrl) {
 export default function MembersPage() {
   const user = useAuthStore((s) => s.user);
   const canEditMembers = ['super_admin', 'branch_admin', 'pastor'].includes(user?.role || '');
+  const isSuper = user?.role === 'super_admin';
 
   const [members, setMembers] = useState([]);
   const [stats, setStats] = useState({});
@@ -26,6 +27,7 @@ export default function MembersPage() {
   const [statusFilter, setStatusFilter] = useState('');
   const [page, setPage] = useState(1);
   const [pagination, setPagination] = useState({});
+  const [branches, setBranches] = useState([]);
   const [showModal, setShowModal] = useState(false);
   const [showEdit, setShowEdit] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -37,6 +39,8 @@ export default function MembersPage() {
   const [editPhotoUploading, setEditPhotoUploading] = useState(false);
   const addPhotoInputRef = useRef(null);
   const editPhotoInputRef = useRef(null);
+  const [notice, setNotice] = useState(null);
+  const notify = (type, text) => setNotice({ type, text });
 
   const load = async () => {
     setLoading(true);
@@ -54,10 +58,31 @@ export default function MembersPage() {
 
   useEffect(() => { load(); }, [page, search, tierFilter, statusFilter]);
 
+  useEffect(() => {
+    if (!canEditMembers) return;
+    branchesAPI
+      .getAll({ include_all_statuses: true, limit: 500 })
+      .then((res) => setBranches(res.data?.data ?? []))
+      .catch(() => setBranches([]));
+  }, [canEditMembers]);
+
   const handleCreate = async () => {
+    if (!form.first_name?.trim() || !form.last_name?.trim()) {
+      notify('error', 'First name and last name are required.');
+      return;
+    }
+    const branchId = form.branch_id || user?.branch_id || undefined;
+    if (isSuper && !branchId) {
+      notify('error', 'Select a branch for this member.');
+      return;
+    }
     setSaving(true);
     try {
-      const res = await membersAPI.create(form);
+      const payload = {
+        ...form,
+        branch_id: branchId,
+      };
+      const res = await membersAPI.create(payload);
       const id = res.data?.data?.id;
       if (newPhotoFile && id) {
         const fd = new FormData();
@@ -68,8 +93,11 @@ export default function MembersPage() {
       setForm({});
       setNewPhotoFile(null);
       if (addPhotoInputRef.current) addPhotoInputRef.current.value = '';
+      notify('success', 'Member created successfully.');
       load();
-    } catch (e) { alert(e.response?.data?.message || 'Failed to create member'); }
+    } catch (e) {
+      notify('error', e.response?.data?.message || 'Failed to create member');
+    }
     finally { setSaving(false); }
   };
 
@@ -91,7 +119,7 @@ export default function MembersPage() {
       });
       setShowEdit(true);
     } catch (e) {
-      alert(e.response?.data?.message || 'Could not load member');
+      notify('error', e.response?.data?.message || 'Could not load member');
     }
   };
 
@@ -111,9 +139,10 @@ export default function MembersPage() {
       });
       setShowEdit(false);
       setEditMember(null);
+      notify('success', 'Member updated successfully.');
       load();
     } catch (e) {
-      alert(e.response?.data?.message || 'Update failed');
+      notify('error', e.response?.data?.message || 'Update failed');
     } finally {
       setEditSaving(false);
     }
@@ -129,9 +158,10 @@ export default function MembersPage() {
       fd.append('photo', file);
       const res = await membersAPI.uploadPhoto(editMember.id, fd);
       setEditMember(res.data?.data);
+      notify('success', 'Photo updated.');
       load();
     } catch (err) {
-      alert(err.response?.data?.message || 'Photo upload failed');
+      notify('error', err.response?.data?.message || 'Photo upload failed');
     } finally {
       setEditPhotoUploading(false);
     }
@@ -148,8 +178,13 @@ export default function MembersPage() {
       <PageHeader
         title="Members Database"
         subtitle="All registered members across branches"
-        action={canEditMembers ? <Button onClick={() => setShowModal(true)}>+ Add Member</Button> : null}
+        action={canEditMembers ? <Button onClick={() => {
+          setForm({ branch_id: user?.branch_id || '' });
+          setShowModal(true);
+        }}>+ Add Member</Button> : null}
       />
+
+      {notice && <NoticeBanner type={notice.type}>{notice.text}</NoticeBanner>}
 
       <StatsGrid>
         <StatCard icon="👥" value={stats.total || 0}      label="Total Members"    accent="purple" />
@@ -274,6 +309,20 @@ export default function MembersPage() {
           <Input label="Last Name" value={form.last_name || ''} onChange={e => setForm(f => ({...f, last_name: e.target.value}))} placeholder="Last name" />
         </div>
         <div className="mt-4 space-y-4">
+          {isSuper && (
+            <Select
+              label="Branch"
+              value={form.branch_id || ''}
+              onChange={e => setForm(f => ({ ...f, branch_id: e.target.value }))}
+            >
+              <option value="">Select branch</option>
+              {branches.map((b) => (
+                <option key={b.id} value={b.id}>
+                  {b.name}
+                </option>
+              ))}
+            </Select>
+          )}
           <Input label="Email" type="email" value={form.email || ''} onChange={e => setForm(f => ({...f, email: e.target.value}))} placeholder="email@example.com" />
           <Input label="Phone" value={form.phone || ''} onChange={e => setForm(f => ({...f, phone: e.target.value}))} placeholder="+234 800 000 0000" />
           <div className="grid grid-cols-2 gap-4">

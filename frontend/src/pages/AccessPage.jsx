@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import useAuthStore from '../context/authStore';
 import { usersAPI, branchesAPI } from '../services/api';
-import { PageHeader, Card, Badge, Button, Modal, Input, Select, Spinner, Table } from '../components/UI';
+import { PageHeader, Card, Badge, Button, Modal, Input, Select, Spinner, Table, NoticeBanner } from '../components/UI';
 
 const ROLES = [
   ['super_admin', 'Super administrator'],
@@ -66,7 +66,6 @@ export default function AccessPage() {
   const loadStaff = async () => {
     if (!canView) return;
     setLoading(true);
-    setBanner(null);
     try {
       const res = await usersAPI.getAll({
         page,
@@ -93,6 +92,7 @@ export default function AccessPage() {
   }, [page, roleFilter, search, canView]);
 
   const openInvite = () => {
+    setBanner(null);
     setInviteForm({
       email: '',
       full_name: '',
@@ -126,9 +126,13 @@ export default function AccessPage() {
       setInviteOpen(false);
       await loadStaff();
       if (res.data?.temporaryPassword) {
-        window.alert(
-          `Account created.\n\nTemporary password (copy now — it will not be shown again):\n${res.data.temporaryPassword}`
-        );
+        setBanner({
+          type: 'success',
+          text: 'Account created. Copy the temporary password below — it will not be shown again.',
+          detail: res.data.temporaryPassword,
+        });
+      } else {
+        setBanner({ type: 'success', text: 'Account created.' });
       }
     } catch (e) {
       setBanner({ type: 'error', text: e.response?.data?.message || 'Invite failed.' });
@@ -205,13 +209,9 @@ export default function AccessPage() {
       />
 
       {banner && (
-        <div
-          className={`mb-4 px-4 py-3 rounded-lg text-sm ${
-            banner.type === 'error' ? 'bg-red-50 text-red-800 border border-red-100' : 'bg-emerald-50 text-emerald-800 border border-emerald-100'
-          }`}
-        >
+        <NoticeBanner type={banner.type} detail={banner.detail}>
           {banner.text}
-        </div>
+        </NoticeBanner>
       )}
 
       <Card>

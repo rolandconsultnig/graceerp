@@ -73,6 +73,19 @@ exports.create = asyncHandler(async (req, res) => {
   }
 
   const targetBranch = req.branchId || branch_id;
+  if (!targetBranch) {
+    return res.status(400).json({ success: false, message: 'branch_id required' });
+  }
+  if (req.branchId && branch_id && branch_id !== req.branchId) {
+    return res.status(403).json({ success: false, message: 'Cannot create member outside your branch' });
+  }
+  const branchChk = await query(
+    `SELECT id FROM branches WHERE id = $1 AND church_id = $2`,
+    [targetBranch, req.user.church_id]
+  );
+  if (!branchChk.rows.length) {
+    return res.status(400).json({ success: false, message: 'Invalid branch_id' });
+  }
   const code = `MBR-${Date.now().toString().slice(-6)}`;
 
   const result = await query(

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import useAuthStore from '../context/authStore';
 import { pastoralAPI, branchesAPI, membersAPI } from '../services/api';
-import { PageHeader, Card, Badge, Button, Modal, Input, Select, Spinner, Table } from '../components/UI';
+import { PageHeader, Card, Badge, Button, Modal, Input, Select, Spinner, Table, NoticeBanner } from '../components/UI';
 
 function TabButton({ active, children, onClick }) {
   return (
@@ -50,6 +50,8 @@ export default function PastoralPage() {
   const [welfareModal, setWelfareModal] = useState(false);
   const [welfareForm, setWelfareForm] = useState({});
   const [editWelfare, setEditWelfare] = useState(null);
+  const [notice, setNotice] = useState(null);
+  const notify = (type, text) => setNotice({ type, text });
 
   useEffect(() => {
     branchesAPI
@@ -101,11 +103,11 @@ export default function PastoralPage() {
 
   const savePrayer = async () => {
     if (!prayForm.title?.trim()) {
-      alert('Title required.');
+      notify('error', 'Title required.');
       return;
     }
     if (!prayForm.branch_id) {
-      alert('Branch required.');
+      notify('error', 'Branch required.');
       return;
     }
     setSaving(true);
@@ -120,9 +122,10 @@ export default function PastoralPage() {
         is_confidential: !!prayForm.is_confidential,
       });
       setPrayerModal(false);
+      notify('success', 'Prayer request added.');
       load();
     } catch (e) {
-      alert(e.response?.data?.message || 'Failed.');
+      notify('error', e.response?.data?.message || 'Failed.');
     } finally {
       setSaving(false);
     }
@@ -138,9 +141,10 @@ export default function PastoralPage() {
         resolution_note: editPrayer.resolution_note || undefined,
       });
       setEditPrayer(null);
+      notify('success', 'Prayer request updated.');
       load();
     } catch (e) {
-      alert(e.response?.data?.message || 'Failed.');
+      notify('error', e.response?.data?.message || 'Failed.');
     } finally {
       setSaving(false);
     }
@@ -150,9 +154,10 @@ export default function PastoralPage() {
     if (!confirm('Delete this prayer request?')) return;
     try {
       await pastoralAPI.deletePrayer(p.id);
+      notify('success', 'Prayer request removed.');
       load();
     } catch (e) {
-      alert(e.response?.data?.message || 'Failed.');
+      notify('error', e.response?.data?.message || 'Failed.');
     }
   };
 
@@ -169,11 +174,11 @@ export default function PastoralPage() {
 
   const saveVisit = async () => {
     if (!visitForm.member_id || !visitForm.visit_date) {
-      alert('Member and visit date required.');
+      notify('error', 'Member and visit date required.');
       return;
     }
     if (!visitForm.branch_id) {
-      alert('Branch required.');
+      notify('error', 'Branch required.');
       return;
     }
     setSaving(true);
@@ -186,9 +191,10 @@ export default function PastoralPage() {
         notes: visitForm.notes || undefined,
       });
       setVisitModal(false);
+      notify('success', 'Visit recorded.');
       load();
     } catch (e) {
-      alert(e.response?.data?.message || 'Failed.');
+      notify('error', e.response?.data?.message || 'Failed.');
     } finally {
       setSaving(false);
     }
@@ -198,9 +204,10 @@ export default function PastoralPage() {
     if (!confirm('Delete this visit record?')) return;
     try {
       await pastoralAPI.deleteVisit(v.id);
+      notify('success', 'Visit deleted.');
       load();
     } catch (e) {
-      alert(e.response?.data?.message || 'Failed.');
+      notify('error', e.response?.data?.message || 'Failed.');
     }
   };
 
@@ -217,11 +224,11 @@ export default function PastoralPage() {
 
   const saveWelfare = async () => {
     if (!welfareForm.member_id) {
-      alert('Member required.');
+      notify('error', 'Member required.');
       return;
     }
     if (!welfareForm.branch_id) {
-      alert('Branch required.');
+      notify('error', 'Branch required.');
       return;
     }
     setSaving(true);
@@ -234,9 +241,10 @@ export default function PastoralPage() {
         status: welfareForm.status,
       });
       setWelfareModal(false);
+      notify('success', 'Welfare flag added.');
       load();
     } catch (e) {
-      alert(e.response?.data?.message || 'Failed.');
+      notify('error', e.response?.data?.message || 'Failed.');
     } finally {
       setSaving(false);
     }
@@ -252,9 +260,10 @@ export default function PastoralPage() {
         flag_type: editWelfare.flag_type,
       });
       setEditWelfare(null);
+      notify('success', 'Welfare record updated.');
       load();
     } catch (e) {
-      alert(e.response?.data?.message || 'Failed.');
+      notify('error', e.response?.data?.message || 'Failed.');
     } finally {
       setSaving(false);
     }
@@ -264,9 +273,10 @@ export default function PastoralPage() {
     if (!confirm('Remove welfare flag?')) return;
     try {
       await pastoralAPI.deleteWelfare(w.id);
+      notify('success', 'Welfare flag removed.');
       load();
     } catch (e) {
-      alert(e.response?.data?.message || 'Failed.');
+      notify('error', e.response?.data?.message || 'Failed.');
     }
   };
 
@@ -289,6 +299,8 @@ export default function PastoralPage() {
           ) : null
         }
       />
+
+      {notice && <NoticeBanner type={notice.type}>{notice.text}</NoticeBanner>}
 
       <div className="flex gap-2 mb-4">
         <TabButton active={tab === 'prayers'} onClick={() => setTab('prayers')}>

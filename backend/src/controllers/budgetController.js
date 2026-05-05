@@ -85,6 +85,9 @@ exports.createBudget = asyncHandler(async (req, res) => {
 
   let bid = b.branch_id || req.branchId;
   if (!bid) return res.status(400).json({ success: false, message: 'branch_id required' });
+  if (req.branchId && b.branch_id && b.branch_id !== req.branchId) {
+    return res.status(403).json({ success: false, message: 'Cannot create budget outside your branch' });
+  }
 
   const chk = await query(`SELECT id FROM branches WHERE id=$1 AND church_id=$2`, [bid, churchId]);
   if (!chk.rows.length) return res.status(400).json({ success: false, message: 'Invalid branch' });

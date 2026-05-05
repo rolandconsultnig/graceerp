@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import useAuthStore from '../context/authStore';
 import { projectAPI, branchesAPI } from '../services/api';
-import { PageHeader, Card, Badge, Button, Modal, Input, Select, Spinner, Table } from '../components/UI';
+import { PageHeader, Card, Badge, Button, Modal, Input, Select, Spinner, Table, NoticeBanner } from '../components/UI';
 
 function TabButton({ active, children, onClick }) {
   return (
@@ -126,6 +126,8 @@ export default function ProjectsPage() {
   const [rejectTarget, setRejectTarget] = useState(null);
   const [rejectReason, setRejectReason] = useState('');
   const [rejectSaving, setRejectSaving] = useState(false);
+  const [notice, setNotice] = useState(null);
+  const notify = (type, text) => setNotice({ type, text });
 
   useEffect(() => {
     branchesAPI
@@ -187,11 +189,11 @@ export default function ProjectsPage() {
 
   const saveProject = async () => {
     if (!projForm.name?.trim()) {
-      alert('Project name is required.');
+      notify('error', 'Project name is required.');
       return;
     }
     if (!projForm.branch_id) {
-      alert('Select a branch.');
+      notify('error', 'Select a branch.');
       return;
     }
     setSaving(true);
@@ -209,9 +211,10 @@ export default function ProjectsPage() {
         description: projForm.description?.trim() || undefined,
       });
       setProjModal(false);
+      notify('success', 'Project created successfully.');
       loadProjects();
     } catch (e) {
-      alert(e.response?.data?.message || 'Could not create project.');
+      notify('error', e.response?.data?.message || 'Could not create project.');
     } finally {
       setSaving(false);
     }
@@ -221,9 +224,10 @@ export default function ProjectsPage() {
     if (!confirm(`Delete project “${row.name}”?`)) return;
     try {
       await projectAPI.removeProject(row.id);
+      notify('success', 'Project deleted.');
       loadProjects();
     } catch (e) {
-      alert(e.response?.data?.message || 'Could not delete.');
+      notify('error', e.response?.data?.message || 'Could not delete.');
     }
   };
 
@@ -251,11 +255,11 @@ export default function ProjectsPage() {
 
   const saveBud = async () => {
     if (!budForm.title?.trim() || budForm.requested_amount === '' || !budForm.department?.trim()) {
-      alert('Title, department, and requested amount are required.');
+      notify('error', 'Title, department, and requested amount are required.');
       return;
     }
     if (!budForm.branch_id) {
-      alert('Select a branch.');
+      notify('error', 'Select a branch.');
       return;
     }
     setSaving(true);
@@ -271,9 +275,10 @@ export default function ProjectsPage() {
         status: budForm.submitNow ? 'pending' : 'draft',
       });
       setBudModal(false);
+      notify('success', 'Department budget submission saved.');
       loadDeptBudgets();
     } catch (e) {
-      alert(e.response?.data?.message || 'Could not create submission.');
+      notify('error', e.response?.data?.message || 'Could not create submission.');
     } finally {
       setSaving(false);
     }
@@ -282,18 +287,20 @@ export default function ProjectsPage() {
   const submitDraft = async (row) => {
     try {
       await projectAPI.submitDeptBudget(row.id);
+      notify('success', 'Submission sent for approval.');
       loadDeptBudgets();
     } catch (e) {
-      alert(e.response?.data?.message || 'Submit failed.');
+      notify('error', e.response?.data?.message || 'Submit failed.');
     }
   };
 
   const approveBud = async (row) => {
     try {
       await projectAPI.approveDeptBudget(row.id);
+      notify('success', 'Submission approved for this stage.');
       loadDeptBudgets();
     } catch (e) {
-      alert(e.response?.data?.message || 'Approval failed.');
+      notify('error', e.response?.data?.message || 'Approval failed.');
     }
   };
 
@@ -304,9 +311,10 @@ export default function ProjectsPage() {
       await projectAPI.rejectDeptBudget(rejectTarget.id, { reason: rejectReason.trim() });
       setRejectTarget(null);
       setRejectReason('');
+      notify('success', 'Submission rejected.');
       loadDeptBudgets();
     } catch (e) {
-      alert(e.response?.data?.message || 'Could not reject.');
+      notify('error', e.response?.data?.message || 'Could not reject.');
     } finally {
       setRejectSaving(false);
     }
@@ -316,9 +324,10 @@ export default function ProjectsPage() {
     if (!confirm('Delete this departmental budget submission?')) return;
     try {
       await projectAPI.deleteDeptBudget(row.id);
+      notify('success', 'Submission deleted.');
       loadDeptBudgets();
     } catch (e) {
-      alert(e.response?.data?.message || 'Could not delete.');
+      notify('error', e.response?.data?.message || 'Could not delete.');
     }
   };
 
@@ -335,9 +344,10 @@ export default function ProjectsPage() {
         project_id: editBud.project_id || null,
       });
       setEditBud(null);
+      notify('success', 'Submission updated.');
       loadDeptBudgets();
     } catch (e) {
-      alert(e.response?.data?.message || 'Could not update.');
+      notify('error', e.response?.data?.message || 'Could not update.');
     } finally {
       setSaving(false);
     }
@@ -367,6 +377,7 @@ export default function ProjectsPage() {
           ) : null
         }
       />
+      {notice && <NoticeBanner type={notice.type}>{notice.text}</NoticeBanner>}
 
       <div className="flex gap-2 mb-4">
         <TabButton active={tab === 'projects'} onClick={() => setTab('projects')}>

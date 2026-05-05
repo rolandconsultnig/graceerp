@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import useAuthStore from '../context/authStore';
 import { assetsAPI, branchesAPI } from '../services/api';
-import { PageHeader, Card, Badge, Button, Modal, Input, Select, Spinner, Table } from '../components/UI';
+import { PageHeader, Card, Badge, Button, Modal, Input, Select, Spinner, Table, NoticeBanner } from '../components/UI';
 
 const CATEGORIES = ['vehicle', 'equipment', 'instrument', 'it', 'furniture', 'building', 'land', 'other'];
 const STATUSES = ['active', 'maintenance', 'disposed', 'transferred'];
@@ -73,6 +73,7 @@ export default function AssetsPage() {
   const [editOpen, setEditOpen] = useState(false);
   const [editForm, setEditForm] = useState({});
   const [saving, setSaving] = useState(false);
+  const [notice, setNotice] = useState(null);
 
   const [maintAsset, setMaintAsset] = useState(null);
   const [maintRows, setMaintRows] = useState([]);
@@ -89,6 +90,7 @@ export default function AssetsPage() {
   });
 
   const [editMaint, setEditMaint] = useState(null);
+  const notify = (type, text) => setNotice({ type, text });
 
   useEffect(() => {
     branchesAPI
@@ -185,11 +187,11 @@ export default function AssetsPage() {
 
   const handleCreate = async () => {
     if (!form.asset_tag?.trim() || !form.name?.trim()) {
-      alert('Asset tag and name are required.');
+      notify('error', 'Asset tag and name are required.');
       return;
     }
     if (!form.branch_id) {
-      alert('Select a branch.');
+      notify('error', 'Select a branch.');
       return;
     }
     setSaving(true);
@@ -210,9 +212,10 @@ export default function AssetsPage() {
         location: form.location || null,
       });
       setFormOpen(false);
+      notify('success', 'Asset created successfully.');
       load();
     } catch (e) {
-      alert(e.response?.data?.message || 'Could not create asset.');
+      notify('error', e.response?.data?.message || 'Could not create asset.');
     } finally {
       setSaving(false);
     }
@@ -240,7 +243,7 @@ export default function AssetsPage() {
 
   const handleSaveEdit = async () => {
     if (!editForm.name?.trim()) {
-      alert('Name is required.');
+      notify('error', 'Name is required.');
       return;
     }
     setSaving(true);
@@ -262,9 +265,10 @@ export default function AssetsPage() {
         location: editForm.location || null,
       });
       setEditOpen(false);
+      notify('success', 'Asset updated successfully.');
       load();
     } catch (e) {
-      alert(e.response?.data?.message || 'Could not update asset.');
+      notify('error', e.response?.data?.message || 'Could not update asset.');
     } finally {
       setSaving(false);
     }
@@ -297,7 +301,7 @@ export default function AssetsPage() {
 
   const submitMaintenance = async () => {
     if (!maintForm.description?.trim()) {
-      alert('Description is required.');
+      notify('error', 'Description is required.');
       return;
     }
     setSaving(true);
@@ -326,8 +330,9 @@ export default function AssetsPage() {
         loadUpcoming();
         loadHistory();
       }
+      notify('success', 'Maintenance record logged.');
     } catch (e) {
-      alert(e.response?.data?.message || 'Could not log maintenance.');
+      notify('error', e.response?.data?.message || 'Could not log maintenance.');
     } finally {
       setSaving(false);
     }
@@ -353,8 +358,9 @@ export default function AssetsPage() {
         loadUpcoming();
         loadHistory();
       }
+      notify('success', 'Maintenance record updated.');
     } catch (e) {
-      alert(e.response?.data?.message || 'Could not update record.');
+      notify('error', e.response?.data?.message || 'Could not update record.');
     } finally {
       setSaving(false);
     }
@@ -370,8 +376,9 @@ export default function AssetsPage() {
         loadUpcoming();
         loadHistory();
       }
+      notify('success', 'Maintenance record deleted.');
     } catch (e) {
-      alert(e.response?.data?.message || 'Could not delete.');
+      notify('error', e.response?.data?.message || 'Could not delete.');
     }
   };
 
@@ -395,6 +402,7 @@ export default function AssetsPage() {
         subtitle="Register property, depreciation (book value), and maintenance"
         action={canManage ? <Button onClick={openCreate}>+ Add asset</Button> : null}
       />
+      {notice && <NoticeBanner type={notice.type}>{notice.text}</NoticeBanner>}
 
       <div className="flex gap-2 mb-4">
         <TabButton active={tab === 'register'} onClick={() => setTab('register')}>

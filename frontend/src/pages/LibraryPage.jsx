@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import useAuthStore from '../context/authStore';
 import { libraryAPI } from '../services/api';
-import { PageHeader, Card, Badge, Button, Modal, Input, Select, Spinner, Table } from '../components/UI';
+import { PageHeader, Card, Badge, Button, Modal, Input, Select, Spinner, Table, NoticeBanner } from '../components/UI';
 
 const FORMATS = ['pdf', 'epub', 'docx', 'mp3', 'mp4', 'other'];
 const TIERS = ['all', 'cell_leader', 'minister', 'pastor', 'admin'];
@@ -29,6 +29,8 @@ export default function LibraryPage() {
   const [form, setForm] = useState({});
   const [saving, setSaving] = useState(false);
   const [view, setView] = useState(null);
+  const [notice, setNotice] = useState(null);
+  const notify = (type, text) => setNotice({ type, text });
 
   const load = async () => {
     setLoading(true);
@@ -99,7 +101,7 @@ export default function LibraryPage() {
 
   const save = async () => {
     if (!form.title?.trim()) {
-      alert('Title required');
+      notify('error', 'Title required');
       return;
     }
     setSaving(true);
@@ -126,9 +128,10 @@ export default function LibraryPage() {
       if (editing) await libraryAPI.update(editing.id, payload);
       else await libraryAPI.create(payload);
       setFormOpen(false);
+      notify('success', editing ? 'Resource updated.' : 'Resource added.');
       load();
     } catch (e) {
-      alert(e.response?.data?.message || 'Save failed');
+      notify('error', e.response?.data?.message || 'Save failed');
     } finally {
       setSaving(false);
     }
@@ -140,8 +143,9 @@ export default function LibraryPage() {
       await libraryAPI.remove(row.id);
       load();
       if (view?.id === row.id) setView(null);
+      notify('success', 'Resource deleted.');
     } catch (e) {
-      alert(e.response?.data?.message || 'Delete failed');
+      notify('error', e.response?.data?.message || 'Delete failed');
     }
   };
 
@@ -150,7 +154,7 @@ export default function LibraryPage() {
       const res = await libraryAPI.getOne(row.id);
       setView(res.data.data);
     } catch (e) {
-      alert(e.response?.data?.message || 'Could not open resource');
+      notify('error', e.response?.data?.message || 'Could not open resource');
     }
   };
 
@@ -161,6 +165,8 @@ export default function LibraryPage() {
         subtitle="Digital resources by category — opening a resource increments views."
         action={canManage ? <Button onClick={openCreate}>+ Add resource</Button> : undefined}
       />
+
+      {notice && <NoticeBanner type={notice.type}>{notice.text}</NoticeBanner>}
 
       <Card>
         <div className="p-5 border-b border-gray-100 flex flex-wrap gap-3 items-center">

@@ -27,8 +27,19 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-sidebar-bg via-purple-950 to-sidebar-bg flex items-center justify-center p-4 font-body">
-      <div className="w-full max-w-lg">
+    <div
+      className="min-h-screen bg-gradient-to-br from-sidebar-bg via-purple-950 to-sidebar-bg flex items-center justify-center p-4 font-body relative overflow-hidden"
+      style={{
+        backgroundImage: `url(${CHURCH_LOGO_SRC})`,
+        backgroundSize: 'contain',
+        backgroundPosition: 'center',
+        backgroundRepeat: 'no-repeat',
+        backgroundBlendMode: 'overlay',
+      }}
+    >
+      {/* Overlay for better contrast */}
+      <div className="absolute inset-0 bg-purple-950/80" />
+      <div className="w-full max-w-lg relative z-10">
         {/* Logo */}
         <div className="text-center mb-10">
           <div className="mx-auto mb-6 flex justify-center">

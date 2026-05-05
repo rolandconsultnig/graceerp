@@ -14,6 +14,7 @@ import {
   Badge,
   StatsGrid,
   StatCard,
+  NoticeBanner,
 } from '../components/UI';
 
 const GIVING_TYPES = [
@@ -283,17 +284,7 @@ export default function FinancePage() {
         }
       />
 
-      {banner && (
-        <div
-          className={`mb-4 px-4 py-3 rounded-lg text-sm ${
-            banner.type === 'success'
-              ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
-              : 'bg-red-50 text-red-800 border border-red-200'
-          }`}
-        >
-          {banner.text}
-        </div>
-      )}
+      {banner && <NoticeBanner type={banner.type}>{banner.text}</NoticeBanner>}
 
       <div className="flex flex-wrap gap-2 mb-6">
         <TabButton active={tab === 'giving'} onClick={() => setTab('giving')}>

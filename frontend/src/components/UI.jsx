@@ -1,3 +1,5 @@
+import { twMerge } from 'tailwind-merge';
+
 // Stat Card
 export function StatCard({ icon, value, label, change, changeType, accent = 'purple' }) {
   const accents = {
@@ -31,6 +33,24 @@ export function PageHeader({ title, subtitle, action }) {
         {subtitle && <p className="text-sm text-gray-500 mt-0.5">{subtitle}</p>}
       </div>
       {action}
+    </div>
+  );
+}
+
+/** Inline success / error banner (shared across staff pages). */
+export function NoticeBanner({ type = 'success', children, detail, className }) {
+  const variant =
+    type === 'error'
+      ? 'border-red-200 bg-red-50 text-red-800'
+      : 'border-emerald-200 bg-emerald-50 text-emerald-800';
+  return (
+    <div className={twMerge('mb-4 rounded-lg border px-4 py-3 text-sm', variant, className)}>
+      {children != null && children !== '' ? <div>{children}</div> : null}
+      {detail ? (
+        <code className="mt-2 block break-all rounded border border-black/10 bg-white/80 px-2 py-1.5 font-mono text-xs text-gray-900">
+          {detail}
+        </code>
+      ) : null}
     </div>
   );
 }

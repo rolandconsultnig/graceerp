@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import useAuthStore from '../context/authStore';
 import { branchesAPI } from '../services/api';
-import { PageHeader, Card, Badge, Button, Modal, Input, Select, Spinner, Table } from '../components/UI';
+import { PageHeader, Card, Badge, Button, Modal, Input, Select, Spinner, Table, NoticeBanner } from '../components/UI';
 
 const STATUSES = [
   { value: 'active', label: 'Active' },
@@ -40,7 +40,6 @@ export default function BranchesPage() {
 
   const load = async () => {
     setLoading(true);
-    setBanner(null);
     try {
       const params = isSuper
         ? { include_all_statuses: true, limit: 500 }
@@ -99,6 +98,7 @@ export default function BranchesPage() {
         setSaving(false);
         return;
       }
+      const wasEditing = !!editingId;
       if (editingId) {
         await branchesAPI.update(editingId, payload);
       } else {
@@ -106,6 +106,10 @@ export default function BranchesPage() {
       }
       setShowModal(false);
       await load();
+      setBanner({
+        type: 'success',
+        text: wasEditing ? 'Congregation updated successfully.' : 'Congregation created successfully.',
+      });
     } catch (e) {
       setBanner({ type: 'error', text: e.response?.data?.message || 'Save failed.' });
     } finally {
@@ -118,6 +122,7 @@ export default function BranchesPage() {
     try {
       await branchesAPI.remove(b.id);
       await load();
+      setBanner({ type: 'success', text: `"${b.name}" archived.` });
     } catch (e) {
       setBanner({ type: 'error', text: e.response?.data?.message || 'Archive failed.' });
     }
@@ -149,15 +154,7 @@ export default function BranchesPage() {
         }
       />
 
-      {banner && (
-        <div
-          className={`mb-4 px-4 py-3 rounded-lg text-sm ${
-            banner.type === 'error' ? 'bg-red-50 text-red-800 border border-red-100' : 'bg-emerald-50 text-emerald-800 border border-emerald-100'
-          }`}
-        >
-          {banner.text}
-        </div>
-      )}
+      {banner && <NoticeBanner type={banner.type}>{banner.text}</NoticeBanner>}
 
       <Card>
         {loading ? (

@@ -16,6 +16,7 @@ router.post('/profile/photo', requireMemberPortal, (req, res, next) => {
   });
 }, ctrl.uploadPhoto);
 
+router.get('/chat/webrtc-config', ctrl.webrtcConfig);
 router.get('/chat/messages', requireMemberPortal, ctrl.listMyChat);
 router.post('/chat/messages', requireMemberPortal, ctrl.postMyMessage);
 

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import useAuthStore from '../context/authStore';
 import { meetingsAPI, branchesAPI } from '../services/api';
-import { PageHeader, Card, Badge, Button, Modal, Input, Select, Spinner, Table } from '../components/UI';
+import { PageHeader, Card, Badge, Button, Modal, Input, Select, Spinner, Table, NoticeBanner } from '../components/UI';
 
 const STATUSES = ['scheduled', 'live', 'ended', 'cancelled'];
 
@@ -40,6 +40,8 @@ export default function MeetingsPage() {
   const [attendance, setAttendance] = useState([]);
   const [attForm, setAttForm] = useState({ member_id: '', display_name: '' });
   const [attSaving, setAttSaving] = useState(false);
+  const [notice, setNotice] = useState(null);
+  const notify = (type, text) => setNotice({ type, text });
 
   useEffect(() => {
     branchesAPI
@@ -121,7 +123,7 @@ export default function MeetingsPage() {
 
   const save = async () => {
     if (!form.title?.trim() || !form.scheduled_start) {
-      alert('Title and start time required');
+      notify('error', 'Title and start time required');
       return;
     }
     setSaving(true);
@@ -150,10 +152,11 @@ export default function MeetingsPage() {
       if (editing) await meetingsAPI.update(editing.id, payload);
       else await meetingsAPI.create(payload);
       setFormOpen(false);
+      notify('success', editing ? 'Meeting updated.' : 'Meeting scheduled.');
       await load();
       if (prevId && detail?.id === prevId) await refreshAttendance(prevId);
     } catch (e) {
-      alert(e.response?.data?.message || 'Save failed');
+      notify('error', e.response?.data?.message || 'Save failed');
     } finally {
       setSaving(false);
     }
@@ -177,7 +180,7 @@ export default function MeetingsPage() {
   const logAttendance = async () => {
     if (!detail) return;
     if (!attForm.member_id.trim() && !attForm.display_name.trim()) {
-      alert('Enter member UUID or display name');
+      notify('error', 'Enter member UUID or display name');
       return;
     }
     setAttSaving(true);
@@ -187,9 +190,10 @@ export default function MeetingsPage() {
         display_name: attForm.display_name.trim() || undefined,
       });
       setAttForm({ member_id: '', display_name: '' });
+      notify('success', 'Attendance recorded.');
       await refreshAttendance(detail.id);
     } catch (e) {
-      alert(e.response?.data?.message || 'Could not record attendance');
+      notify('error', e.response?.data?.message || 'Could not record attendance');
     } finally {
       setAttSaving(false);
     }
@@ -200,8 +204,9 @@ export default function MeetingsPage() {
       await meetingsAPI.update(row.id, { status });
       load();
       if (detail?.id === row.id) setDetail((d) => ({ ...d, status }));
+      notify('success', 'Meeting status updated.');
     } catch (e) {
-      alert(e.response?.data?.message || 'Update failed');
+      notify('error', e.response?.data?.message || 'Update failed');
     }
   };
 
@@ -211,8 +216,9 @@ export default function MeetingsPage() {
       await meetingsAPI.remove(row.id);
       load();
       if (detail?.id === row.id) setDetail(null);
+      notify('success', 'Meeting deleted.');
     } catch (e) {
-      alert(e.response?.data?.message || 'Delete failed');
+      notify('error', e.response?.data?.message || 'Delete failed');
     }
   };
 
@@ -226,6 +232,8 @@ export default function MeetingsPage() {
         subtitle="Scheduled streams with optional attendance log."
         action={canManage ? <Button onClick={openCreate}>+ Schedule meeting</Button> : undefined}
       />
+
+      {notice && <NoticeBanner type={notice.type}>{notice.text}</NoticeBanner>}
 
       <Card>
         <div className="p-5 border-b border-gray-100 flex flex-wrap gap-3 items-center">

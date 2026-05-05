@@ -290,6 +290,7 @@ export const memberPortalAPI = {
         },
       ],
     }),
+  webrtcConfig: () => api.get('/member-portal/chat/webrtc-config'),
   listChat: () => api.get('/member-portal/chat/messages'),
   postChat: (body) => api.post('/member-portal/chat/messages', { body }),
   staffInbox: () => api.get('/member-portal/staff/inbox'),

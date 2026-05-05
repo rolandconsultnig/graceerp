@@ -23,6 +23,11 @@ export default defineConfig({
         target: 'http://localhost:2020',
         changeOrigin: true,
       },
+      '/ws': {
+        target: 'http://localhost:2020',
+        changeOrigin: true,
+        ws: true,
+      },
     },
   },
   build: {

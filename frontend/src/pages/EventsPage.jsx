@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import useAuthStore from '../context/authStore';
 import { eventsAPI, branchesAPI } from '../services/api';
-import { PageHeader, Card, Badge, Button, Modal, Input, Select, Spinner, Table } from '../components/UI';
+import { PageHeader, Card, Badge, Button, Modal, Input, Select, Spinner, Table, NoticeBanner } from '../components/UI';
 
 const STATUSES = ['upcoming', 'ongoing', 'completed', 'cancelled'];
 
@@ -33,6 +33,8 @@ export default function EventsPage() {
   const [rsvpOpen, setRsvpOpen] = useState(false);
   const [rsvpForm, setRsvpForm] = useState({ name: '', email: '', phone: '' });
   const [rsvpSaving, setRsvpSaving] = useState(false);
+  const [notice, setNotice] = useState(null);
+  const notify = (type, text) => setNotice({ type, text });
 
   useEffect(() => {
     branchesAPI
@@ -114,11 +116,15 @@ export default function EventsPage() {
 
   const save = async () => {
     if (!form.title?.trim() || !form.event_date) {
-      alert('Title and date required');
+      notify('error', 'Title and date are required.');
       return;
     }
     if (!form.branch_id) {
-      alert('Pick a congregation (header branch scope or dropdown).');
+      notify('error', 'Pick a congregation (header branch scope or dropdown).');
+      return;
+    }
+    if (form.start_time && form.end_time && form.start_time >= form.end_time) {
+      notify('error', 'End time must be later than start time.');
       return;
     }
     setSaving(true);
@@ -141,10 +147,11 @@ export default function EventsPage() {
       if (editing) await eventsAPI.update(editing.id, payload);
       else await eventsAPI.create(payload);
       setFormOpen(false);
+      notify('success', editing ? 'Event updated successfully.' : 'Event created successfully.');
       await load();
       if (prevId && detail?.id === prevId) await refreshDetail(prevId);
     } catch (e) {
-      alert(e.response?.data?.message || 'Save failed');
+      notify('error', e.response?.data?.message || 'Save failed');
     } finally {
       setSaving(false);
     }
@@ -168,7 +175,7 @@ export default function EventsPage() {
   const submitRsvp = async () => {
     if (!detail) return;
     if (!rsvpForm.name.trim() && !rsvpForm.email.trim()) {
-      alert('Enter guest name or email');
+      notify('error', 'Enter guest name or email');
       return;
     }
     setRsvpSaving(true);
@@ -180,10 +187,11 @@ export default function EventsPage() {
       });
       setRsvpOpen(false);
       setRsvpForm({ name: '', email: '', phone: '' });
+      notify('success', 'RSVP submitted successfully.');
       await refreshDetail(detail.id);
       load();
     } catch (e) {
-      alert(e.response?.data?.message || 'RSVP failed');
+      notify('error', e.response?.data?.message || 'RSVP failed');
     } finally {
       setRsvpSaving(false);
     }
@@ -193,10 +201,11 @@ export default function EventsPage() {
     if (!window.confirm(`Delete event “${row.title}”?`)) return;
     try {
       await eventsAPI.remove(row.id);
+      notify('success', 'Event deleted.');
       load();
       if (detail?.id === row.id) setDetail(null);
     } catch (e) {
-      alert(e.response?.data?.message || 'Delete failed');
+      notify('error', e.response?.data?.message || 'Delete failed');
     }
   };
 
@@ -210,6 +219,7 @@ export default function EventsPage() {
         subtitle="Branch-scoped programmes with RSVP and capacity."
         action={canManage ? <Button onClick={openCreate}>+ New event</Button> : undefined}
       />
+      {notice && <NoticeBanner type={notice.type}>{notice.text}</NoticeBanner>}
 
       <Card>
         <div className="p-5 border-b border-gray-100 flex flex-wrap gap-3 items-center">

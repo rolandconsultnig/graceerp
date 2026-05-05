@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import useAuthStore from '../context/authStore';
 import { sermonsAPI, branchesAPI } from '../services/api';
-import { PageHeader, Card, Badge, Button, Modal, Input, Select, Spinner, Table } from '../components/UI';
+import { PageHeader, Card, Badge, Button, Modal, Input, Select, Spinner, Table, NoticeBanner } from '../components/UI';
 
 const TIERS = ['all', 'cell_leader', 'minister', 'pastor', 'admin'];
 
@@ -29,6 +29,8 @@ export default function SermonsPage() {
   const [saving, setSaving] = useState(false);
 
   const [view, setView] = useState(null);
+  const [notice, setNotice] = useState(null);
+  const notify = (type, text) => setNotice({ type, text });
 
   useEffect(() => {
     if (user?.role === 'super_admin') {
@@ -110,7 +112,7 @@ export default function SermonsPage() {
 
   const save = async () => {
     if (!form.title?.trim() || !form.preacher_name?.trim() || !form.sermon_date) {
-      alert('Title, preacher, and date are required.');
+      notify('error', 'Title, preacher, and date are required.');
       return;
     }
     setSaving(true);
@@ -143,9 +145,10 @@ export default function SermonsPage() {
         await sermonsAPI.create(payload);
       }
       setFormOpen(false);
+      notify('success', editing ? 'Sermon updated.' : 'Sermon added.');
       load();
     } catch (e) {
-      alert(e.response?.data?.message || 'Save failed');
+      notify('error', e.response?.data?.message || 'Save failed');
     } finally {
       setSaving(false);
     }
@@ -157,8 +160,9 @@ export default function SermonsPage() {
       await sermonsAPI.remove(row.id);
       load();
       if (view?.id === row.id) setView(null);
+      notify('success', 'Sermon deleted.');
     } catch (e) {
-      alert(e.response?.data?.message || 'Delete failed');
+      notify('error', e.response?.data?.message || 'Delete failed');
     }
   };
 
@@ -167,7 +171,7 @@ export default function SermonsPage() {
       const res = await sermonsAPI.getOne(row.id);
       setView(res.data.data);
     } catch (e) {
-      alert(e.response?.data?.message || 'Could not load sermon');
+      notify('error', e.response?.data?.message || 'Could not load sermon');
     }
   };
 
@@ -178,6 +182,8 @@ export default function SermonsPage() {
         subtitle="Teachings with media links — plays increment when you open a sermon."
         action={canManage ? <Button onClick={openCreate}>+ Add sermon</Button> : undefined}
       />
+
+      {notice && <NoticeBanner type={notice.type}>{notice.text}</NoticeBanner>}
 
       <Card>
         <div className="p-5 border-b border-gray-100 flex flex-wrap gap-3 items-center">
