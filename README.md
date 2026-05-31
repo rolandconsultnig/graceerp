@@ -316,22 +316,404 @@ The backend serves the built React app on the same port, so you only need one se
 
 ## Deployment
 
-### Environment variables (production)
-```env
-NODE_ENV=production
-DB_SSL=true
-JWT_SECRET=<use a 64-char random string>
-JWT_REFRESH_SECRET=<use a different 64-char random string>
-FRONTEND_URL=https://your-domain.com
+### Production Deployment Guide (Ubuntu 22.04)
+
+This guide will help you deploy GraceERP to an Ubuntu 22.04 production server as a complete novice.
+
+**Target Server Details:**
+- **Server IP:** `13.53.33.63`
+- **Application Port:** `2025`
+- **Access URL:** `http://13.53.33.63:2025`
+
+---
+
+#### Step 1: Connect to Your Server
+
+Open your terminal and SSH into your server:
+
+```bash
+ssh root@13.53.33.63
 ```
 
-### Recommended hosting
-| Layer | Option |
-|-------|--------|
-| App server | Railway, Render, AWS EC2, DigitalOcean |
-| Database | Railway PostgreSQL, Supabase, AWS RDS |
-| File storage | AWS S3 + CloudFront (for media files) |
-| CDN | Cloudflare |
+Enter your password when prompted.
+
+---
+
+#### Step 2: Update System Packages
+
+Always start by updating your server:
+
+```bash
+sudo apt update && sudo apt upgrade -y
+```
+
+---
+
+#### Step 3: Install Node.js (v18+)
+
+Install Node.js using the NodeSource repository:
+
+```bash
+curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
+sudo apt install -y nodejs
+```
+
+Verify installation:
+
+```bash
+node -v
+npm -v
+```
+
+You should see Node.js v18.x or higher.
+
+---
+
+#### Step 4: Install PostgreSQL
+
+Install PostgreSQL and its development libraries:
+
+```bash
+sudo apt install -y postgresql postgresql-contrib
+```
+
+Start PostgreSQL and enable it to start on boot:
+
+```bash
+sudo systemctl start postgresql
+sudo systemctl enable postgresql
+```
+
+---
+
+#### Step 5: Install PM2 (Process Manager)
+
+PM2 keeps your application running forever:
+
+```bash
+sudo npm install -g pm2
+```
+
+---
+
+#### Step 6: Create Application Directory
+
+Create the directory where your app will live:
+
+```bash
+sudo mkdir -p /var/www/graceerp
+sudo chown -R $USER:$USER /var/www/graceerp
+cd /var/www/graceerp
+```
+
+---
+
+#### Step 7: Clone the Repository
+
+Clone your GitHub repository:
+
+```bash
+git clone https://github.com/rolandconsultnig/graceerp.git .
+```
+
+---
+
+#### Step 8: Install Dependencies
+
+Install dependencies for the root, backend, and frontend:
+
+```bash
+npm install
+cd backend && npm install
+cd ../frontend && npm install
+cd ..
+```
+
+---
+
+#### Step 9: Configure Environment Variables
+
+Create the backend `.env` file:
+
+```bash
+cd backend
+nano .env
+```
+
+Paste the following configuration:
+
+```env
+NODE_ENV=production
+PORT=2025
+DB_HOST=localhost
+DB_PORT=5432
+DB_NAME=graceerp
+DB_USER=graceerp_user
+DB_PASSWORD=your_strong_password_here
+DB_SSL=false
+JWT_SECRET=replace_with_64_char_random_string
+JWT_REFRESH_SECRET=replace_with_different_64_char_random_string
+JWT_EXPIRES_IN=7d
+JWT_REFRESH_EXPIRES_IN=30d
+UPLOAD_DIR=./uploads
+MAX_FILE_SIZE=104857600
+FRONTEND_URL=http://13.53.33.63:2025
+RATE_LIMIT_WINDOW_MS=900000
+RATE_LIMIT_MAX=100
+LOG_LEVEL=info
+```
+
+**Important:** Replace the placeholder values:
+- `DB_PASSWORD` - Choose a strong password
+- `JWT_SECRET` - Generate a 64-character random string
+- `JWT_REFRESH_SECRET` - Generate a different 64-character random string
+
+Save and exit (Ctrl+X, then Y, then Enter).
+
+---
+
+#### Step 10: Setup PostgreSQL Database
+
+Create a database user and database:
+
+```bash
+sudo -u postgres psql
+```
+
+Run these SQL commands one by one:
+
+```sql
+CREATE USER graceerp_user WITH PASSWORD 'your_strong_password_here';
+CREATE DATABASE graceerp OWNER graceerp_user;
+GRANT ALL PRIVILEGES ON DATABASE graceerp TO graceerp_user;
+\c graceerp
+GRANT ALL ON SCHEMA public TO graceerp_user;
+ALTER SCHEMA public OWNER TO graceerp_user;
+\q
+```
+
+**Note:** Replace `your_strong_password_here` with the same password you used in the `.env` file.
+
+---
+
+#### Step 11: Run Database Migration
+
+Migrate the database schema:
+
+```bash
+cd /var/www/graceerp/backend
+npm run migrate
+```
+
+Expected output:
+```
+🔄 Running GraceERP database migration...
+✅ Migration complete — all tables created.
+```
+
+---
+
+#### Step 12: (Optional) Seed Sample Data
+
+If you want sample data for testing:
+
+```bash
+npm run seed
+```
+
+---
+
+#### Step 13: Build the Frontend
+
+Build the React frontend:
+
+```bash
+cd /var/www/graceerp/frontend
+npm run build
+```
+
+This creates a `public` folder in the backend directory with the built frontend files.
+
+---
+
+#### Step 14: Create PM2 Configuration
+
+Create the PM2 configuration file:
+
+```bash
+cd /var/www/graceerp
+nano ecosystem.config.js
+```
+
+Paste the following:
+
+```javascript
+module.exports = {
+  apps: [{
+    name: 'graceerp',
+    script: './backend/src/server.js',
+    instances: 1,
+    exec_mode: 'fork',
+    autorestart: true,
+    watch: false,
+    max_memory_restart: '500M',
+    env: {
+      NODE_ENV: 'production',
+      PORT: 2025
+    },
+    log_file: './logs/combined.log',
+    out_file: './logs/out.log',
+    error_file: './logs/error.log',
+    log_date_format: 'YYYY-MM-DD HH:mm:ss Z'
+  }]
+};
+```
+
+Save and exit.
+
+---
+
+#### Step 15: Create Logs Directory
+
+```bash
+mkdir -p /var/www/graceerp/logs
+```
+
+---
+
+#### Step 16: Start the Application with PM2
+
+```bash
+cd /var/www/graceerp
+pm2 start ecosystem.config.js
+```
+
+Save the PM2 process list:
+
+```bash
+pm2 save
+```
+
+Setup PM2 to start on system boot:
+
+```bash
+pm2 startup
+```
+
+Follow the command output - it will give you a command to run. Copy and run that command.
+
+---
+
+#### Step 17: Configure Firewall
+
+Allow traffic on port 2025:
+
+```bash
+sudo ufw allow 2025/tcp
+sudo ufw enable
+```
+
+If UFW is already enabled, just run the allow command.
+
+---
+
+#### Step 18: Verify the Application
+
+Check PM2 status:
+
+```bash
+pm2 status
+```
+
+You should see `graceerp` with status `online`.
+
+Test the health endpoint:
+
+```bash
+curl http://localhost:2025/health
+```
+
+Expected output:
+```json
+{"status":"ok","timestamp":"..."}
+```
+
+---
+
+#### Step 19: Access Your Application
+
+Open your browser and navigate to:
+
+```
+http://13.53.33.63:2025
+```
+
+You should see the GraceERP login page.
+
+**Default Login Credentials:**
+- Email: `admin@clci.org`
+- Password: `GraceERP@2025`
+
+---
+
+#### Step 20: Useful PM2 Commands
+
+```bash
+# View application logs
+pm2 logs graceerp
+
+# Restart the application
+pm2 restart graceerp
+
+# Stop the application
+pm2 stop graceerp
+
+# View real-time monitoring
+pm2 monit
+
+# View detailed information
+pm2 show graceerp
+```
+
+---
+
+#### Troubleshooting
+
+**Application won't start:**
+```bash
+pm2 logs graceerp
+```
+Check the error logs for details.
+
+**Database connection errors:**
+- Verify PostgreSQL is running: `sudo systemctl status postgresql`
+- Check database credentials in `.env`
+- Ensure database user has proper permissions
+
+**Port already in use:**
+```bash
+sudo lsof -i :2025
+```
+Kill the process using that port if needed.
+
+---
+
+#### Updating the Application
+
+When you make changes to the code:
+
+```bash
+cd /var/www/graceerp
+git pull
+cd frontend && npm run build
+cd ..
+pm2 restart graceerp
+pm2 save
+```
+
+---
+
+### Environment variables (production)
 
 ### Portal chat — WebSocket & WebRTC
 

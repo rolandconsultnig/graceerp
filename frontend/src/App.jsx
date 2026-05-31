@@ -26,6 +26,7 @@ import PortalLayout from './components/PortalLayout';
 import MemberPortalPage from './pages/MemberPortalPage';
 import MemberInboxPage from './pages/MemberInboxPage';
 import CACLandingPage from './pages/CACLandingPage';
+import OtherPastorsPage from './pages/OtherPastorsPage';
 import RoleGuard from './components/RoleGuard';
 
 function ProtectedRoute({ children }) {
@@ -49,6 +50,7 @@ export default function App() {
     >
       <Routes>
         <Route path="/" element={<CACLandingPage />} />
+        <Route path="/other-pastors" element={<OtherPastorsPage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route
           path="/portal"
