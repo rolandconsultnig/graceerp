@@ -105,7 +105,7 @@ export default function OtherPastorsPage() {
           </h1>
           <p className="text-base leading-relaxed text-[#FAF7F0]/75 sm:text-lg" style={{ fontFamily: "'Lora', Georgia, serif" }}>
             Alongside {PRESIDING_PASTOR.name}, our presiding pastor, these ministers and leaders shepherd
-            branches, cells, and ministries across the DCC — one fold under one Shepherd.
+            branches, cells, and ministries across the DCC, one fold under one Shepherd.
           </p>
           <Link
             to="/"
